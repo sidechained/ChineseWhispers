@@ -1,13 +1,75 @@
-MEGAPHONE CHOREOGRAPHY V2:
+* Chinese Whispers
+
+- 
+- simulation and actual classes
 - an exploration/simulation of megaphone rotation and recording/playback from a central 'sound player'
 - three classes at the moment: Megaphone, SoundPlayer, and MegaGUI
 
 To Do List:
+- TODO: Utopian: what is the state of play, does it work?
+- TODO: finalise collaborative GUI, think of ways to control this as a score
+- TODO: finalise GUI in general (new format - in a line)
 - TODO: spread sound in stereo field based on megaphone index
-- TODO: adjust
-- TODO: GUI buttons
 - TODO: understand the degree of spacing that will be required beween megaphones
 - DONE: if recording doesn't fill the buffer, only loop around the filled portion when playing
+
+* Software (finalising class structure)
+
+- order of events:
+-- megaphones and sound sources will boot and announce themselves
+-- they do not need to know about each other or the laptops
+-- laptops will come online and see these resources
+
+- megaphones need to:
+-- announce themselves
+-- communicate with python script to actuate megaphone
+-- don't need to see others
+-- don't need an scserver
+- sound sources need to:
+-- announce themselves
+-- playback sound files
+-- don't need to see others
+-- need an sc server
+- laptops need to:
+-- announce themselves (for benefit of other laptops)
+-- need to see all others (laptops, megaphones, sound sources)
+-- don't need an SC server
+* all devices will run Utopian, using a decentralised network
+
+classes:
+
+-laptops will run:
+sclang:
+	CWGUI					
+	Utopian
+	NMLDecentralisedNode
+
+-beagle board will run:
+sclang:
+	CWMegaphone	
+	Utopian
+	NMLDecentralisedNode
+python:
+	megaphone_control.py
+
+-beagle board will run:
+sclang:
+	CWSoundSource
+	Utopian
+	NMLDecentralisedNode
+scserver:
+
+* Hardware:
+
+- (put notes here)
+
+* Technical/Setup Issues:
+
+9 slots - but only have 8 port switch
+do we have 7 beagles?
+simplification: why don't the end megaphones playback sound?
+
+* Simulation Notes:
 
 Megaphone Movement:
 - currently emulates an 180 degree servo
