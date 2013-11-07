@@ -1,57 +1,114 @@
-CWRemoteSoundSource {
+CWSharedRemoteSoundSource : CWRemoteSoundSource {
 
-	// wrapper class to
+	// this will manage shared control of the resource
 
-	var index, <node, <dataspace;
-
-	*new {arg index, node;
-		^super.newCopyArgs(index, node).initObjectDataSpace;
-	}
-
-	initObjectDataSpace {
-		// do only once this node is online
-		var oscPath;
-		oscPath = '/soundSource' ++ index;
-		oscPath.postln;
-		dataspace = OSCDataSpace(node.addrBook, node.me, oscPath: oscPath);
-	}
-
+	// dataspace is the laptop dataspace
 	// control functions:
 
-	takeControl {arg node;
+	var <sharedLaptopDataSpace, <controlledBy, <playbackControlledBy, <volumeControlledBy;
+
+	*new {arg index, node;
+		^super.new(index, node).initSharedRemoteSoundSource;
+	}
+
+	initSharedRemoteSoundSource {
+		// this will need to be at a higher level
+		sharedLaptopDataSpace = OSCDataSpace(node.addrBook, node.me, oscPath: '/sharedLaptopDataSpace');
+	}
+
+	takeControl {
 		this.takeControlOfPlayback(());
 		this.takeControlOfVolume(());
-		dataspace.put(\controlledBy, node.me.id);
+		sharedLaptopDataSpace.put(\controlledBy, node.me.id);
 	}
 
 	relinquishControl {
-		this.relinquishControlOfPlayback(());
-		this.relinquishControlOfVolume(());
-		dataspace.put(\controlledBy, \reset);
-		// cannot use nil as it gets converted to a 0 over network
+		if (sharedLaptopDataSpace.at(\playbackControlledBy) == node.me.id) {
+			this.relinquishControlOfPlayback(());
+			this.relinquishControlOfVolume(());
+			sharedLaptopDataSpace.put(\controlledBy, \reset);
+			// cannot use nil as it gets converted to a 0 over network
+		} {
+			warn("you are not in control of this sound source");
+		};
 	}
 
-	takeControlOfPlayback {arg node;
-		dataspace.put(\playbackControlledBy, node.me.id);
+	takeControlOfPlayback {
+		sharedLaptopDataSpace.put(\playbackControlledBy, node.me.id);
 	}
 
-	takeControlOfVolume {arg node;
-		dataspace.put(\volumeControlledBy, node.me.id);
+	takeControlOfVolume {
+		sharedLaptopDataSpace.put(\volumeControlledBy, node.me.id);
 	}
 
-	relinquishControlOfPlayback {arg node;
-		dataspace.put(\playbackControlledBy, \reset);
+	relinquishControlOfPlayback {
+		// TODO only if sound not playing
+		if (sharedLaptopDataSpace.at(\playbackControlledBy) == node.me.id) {
+			sharedLaptopDataSpace.put(\playbackControlledBy, \reset);
+		} {
+			warn("you are not in control of this parameter");
+		};
 	}
 
-	relinquishControlOfVolume {arg node;
-		dataspace.put(\volumeControlledBy, \reset);
+	relinquishControlOfVolume {
+		if (sharedLaptopDataSpace.at(\volumeControlledBy) == node.me.id) {
+			sharedLaptopDataSpace.put(\volumeControlledBy, \reset);
+		} {
+			warn("you are not in control of this parameter");
+		};
 	}
 
 	// sound functions:
 
-	playBuffer {arg bufferNumber;
-		dataspace.put(\playBuffer, bufferNumber);
-		// set volume here too
+	playBuffer {arg bufferNumber, volume;
+		if (sharedLaptopDataSpace.at(\playbackControlledBy) == node.me.id) {
+			^super.playBuffer(bufferNumber, volume);
+		} {
+			warn("you are not in control of this parameter");
+		};
+	}
+
+	stopBuffer {
+		if (sharedLaptopDataSpace.at(\playbackControlledBy)  == node.me.id) {
+			^super.stopBuffer;
+		} {
+			warn("you are not in control of this parameter");
+		};
+	}
+
+	setVolume {arg volume;
+		if (sharedLaptopDataSpace.at(\volumeControlledBy) == node.me.id) {
+			^super.setVolume(volume);
+		} {
+			warn("you are not in control of this parameter");
+		};
+	}
+
+}
+
+CWRemoteSoundSource {
+
+	// wrapper class which exposes functionality of a sound source to remote peers on the network
+	// this will run on each laptop
+
+	var index, <node, <dataspace;
+
+	*new {arg index, node;
+		^super.newCopyArgs(index, node).initRemoteSoundSource;
+	}
+
+	initRemoteSoundSource {
+		// do only once this node is online
+		var oscPath;
+		oscPath = '/soundSource' ++ index;
+		dataspace = OSCDataSpace(node.addrBook, node.me, oscPath: oscPath);
+	}
+
+	// sound functions:
+
+	playBuffer {arg bufferNumber, volume;
+		dataspace.put(\playBuffer, [bufferNumber, volume].asBinaryArchive);
+		// binary archiving is a workaround which make it possible send more than one value
 	}
 
 	stopBuffer {arg playbackState, bufferNumber;
@@ -64,10 +121,11 @@ CWRemoteSoundSource {
 
 }
 
-CWNetworkedSoundSource : CWSoundSource {
+CWLocalSoundSource : CWSoundSource {
+
+	// this will run on the beagleboard
 
 	var <utopian, name, <gui, <dataspace;
-	var <controlledBy, <playbackControlledBy, <volumeControlledBy;
 
 	*new {arg index, simulated = false, pathToSoundFiles;
 		^super.new(index, simulated, pathToSoundFiles).init;
@@ -108,77 +166,18 @@ CWNetworkedSoundSource : CWSoundSource {
 		});
 	}
 
-	takeControl {
-		this.takeControlOfPlayback(());
-		this.takeControlOfVolume(());
-		dataspace.put(\controlledBy, utopian.node.me.id);
-	}
-
-	relinquishControl {
-		this.relinquishControlOfPlayback(());
-		this.relinquishControlOfVolume(());
-		dataspace.put(\controlledBy, \reset); // cannot use nil as it gets converted to a 0 over network
-	}
-
-	takeControlOfPlayback {
-		dataspace.put(\playbackControlledBy, utopian.node.me.id);
-	}
-
-	takeControlOfVolume {
-		dataspace.put(\volumeControlledBy, utopian.node.me.id);
-	}
-
-	relinquishControlOfPlayback {
-		dataspace.put(\playbackControlledBy, \reset);
-	}
-
-	relinquishControlOfVolume {
-		dataspace.put(\volumeControlledBy, \reset);
-	}
-
-	setPlaybackState {arg playbackState;
-		\getPlaybackState.postln;
-		if (playbackControlledBy == utopian.node.me.id) {
-			dataspace.put(\setPlaybackState, playbackState);
-		} {
-			warn("you are not in control of this megaphone");
-		};
-	}
-
-	setVolume {arg volume;
-		if (volumeControlledBy == utopian.node.me.id) {
-			dataspace.put(\setVolume, volume);
-		} {
-			warn("you are not in control of this megaphone");
-		};
-	}
-
 	updateState {arg key, value;
-		// shared control:
 		case
-		{
-			(key == \controlledBy) ||
-			(key == \playbackControlledBy)
-		} {
-			defer {
-				gui.control(key, value);
-			}
-		}
+		// shared control:
+		{ (key == \controlledBy) || (key == \playbackControlledBy) } { defer { gui.control(key, value) } }
 		// sound functions:
-		{key == \playBuffer } {
-			var bufferNumber;
-			bufferNumber = value;
-			this.startPlaying(bufferNumber);
+		{ key == \playBuffer } {
+			var bufferNumber, initialVolume;
+			# bufferNumber, initialVolume = value.unarchive;
+			this.startPlaying(bufferNumber, initialVolume);
 		}
-		{
-			key == \stopBuffer;
-		}
-		{
-			this.stopPlaying;
-		}
-		{key == \setVolume } {
-			this.setPlayVolume(value);
-		}
+		{ key == \stopBuffer } { this.stopPlaying }
+		{ key == \setVolume } { this.setVolume(value) }
 	}
 
 }
@@ -192,7 +191,7 @@ CWSoundSource {
 		// .init;
 	}
 
-	// TODO: how to run this without messing with the init from CWNetworkedSoundSource
+	// TODO: how to run this without messing with the init from CWLocalSoundSource
 
 	// init {
 	// 	\imhere.postln;
@@ -219,6 +218,7 @@ CWSoundSource {
 			// should not loop
 			var out;
 			out = PlayBuf.ar(1, buffer, loop: 0, doneAction: 2);
+			out = out * amp; // send Amplitude.kr pre or post amp scaling?
 			SendReply.kr(Impulse.kr(20), '/soundSourceAmplitude', [Amplitude.kr(out)] );
 			Out.ar(0, out);
 		}).add;
@@ -242,14 +242,18 @@ CWSoundSource {
 		if (playSynth.isNil) { ^false } { ^playSynth.isPlaying };
 	}
 
-	startPlaying {arg buffer, amplitude = 1;
-		this.stopPlaying;
-		playSynth = Synth(\soundSourcePlayer, [\buffer, buffer, \amp, amplitude], target: server);
+	startPlaying {arg buffer, initialVolume = 1;
+		if (this.isPlaying) { this.stopPlaying; };
+		playSynth = Synth(\soundSourcePlayer, [\buffer, buffer, \amp, initialVolume], target: server);
 		NodeWatcher.register(playSynth);
 	}
 
 	stopPlaying {
-		if (this.isPlaying) { playSynth.free; };
+		if (this.isPlaying) { playSynth.free; } { warn("sound source not playing!") };
+	}
+
+	setVolume {arg volume;
+		if (this.isPlaying) { \getsHereOrNot.postln; playSynth.set(\amp, volume); } { warn("sound source not playing!") };
 	}
 
 }

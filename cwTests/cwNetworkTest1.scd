@@ -67,18 +67,33 @@ u = NMLUtopian(hasServer: true, doWhenMeAdded: {u.node.addrBook.peers.postln});
 Server.killAll
 // checking functionality of networked sound source (how to get it to trigger sounds):
 (
-n = CWNetworkedSoundSource(1, true, pathToSoundFiles: "/Users/grahambooth/Desktop/Megaphone/china_soundfiles/china_announcements_edited/_chosen/");
+n = CWLocalSoundSource(1, true, pathToSoundFiles: "/Users/grahambooth/Desktop/Megaphone/china_soundfiles/china_announcements_edited/_chosen/");
 )
 (
 // need to wait here;
-l = NMLDecentralisedNode(doWhenMeAdded: {c = CWRemoteSoundSource(1, l)});
+l = NMLDecentralisedNode(doWhenMeAdded: {c = CWSharedRemoteSoundSource(1, l)});
 )
-c.setPlaybackState(true, 0)
-c.dataspace.keys
-n.dataspace.keys
 
+c.node.me.id
+// control tests (use dataspace checks to see if received):
+c.takeControl;
+c.takeControlOfPlayback;
+c.takeControlOfVolume;
+c.relinquishControlOfPlayback;
+c.relinquishControlOfVolume;
+// sound tests:
+c.playBuffer(0, 0.5); // initial volume
+c.stopBuffer;
+c.setVolume(0.1);
+// dataspace checks:
+c.dataspace.keys
+c.dataspace.values
+n.dataspace.keys
+// peer checks:
 c.node.addrBook.peers // should be two peers
 n.utopian.node.addrBook.peers // should be two peers
+// laptop data spaces:
+c.sharedLaptopDataSpace.keys
 
 CWSoundSource(1, true, pathToSoundFiles: "/Users/grahambooth/Desktop/Megaphone/china_soundfiles/china_announcements_edited/_chosen/")
 

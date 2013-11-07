@@ -8,6 +8,25 @@
 To Do List:
 // first, check the networked megaphone and sound source work individually, get them working with utopian
 
+// managing shared access to sound sources
+
+// laptops run a gui
+// option 1:
+// the gui allows or denies control of the resources
+// the availability or not of the resources is shared between the laptops
+// the resources themselves i.e. NetworkedSourceSource don't know who is in control of them
+// but the remote versions do i.e. RemoteSoundSource
+// SharedRemoteSoundSource
+
+// think of a simple case where a sound source is controlled by laptop 1, laptop 2 or no-one
+// controlled by
+
+// 
+
+// revisit GUI classes
+
+
+- TODO: shouldn't be able to relinquish control if a sound is playing
 - TODO: fix fact that when joining, peers come online twice (causes two servers to be booted)
 - TODO: apply changes to Registrar/Registrant that were applied to DecentralisedNode
 - TODO: GUI doesn't pick up megaphones or sound sources that already exist
