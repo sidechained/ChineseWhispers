@@ -11,7 +11,7 @@ CWRemoteSoundSource {
 	initObjectDataSpace {
 		// do only once this node is online
 		var oscPath;
-		oscPath = '\soundSource' ++ index;
+		oscPath = '/soundSource' ++ index;
 		oscPath.postln;
 		dataspace = OSCDataSpace(node.addrBook, node.me, oscPath: oscPath);
 	}
@@ -49,8 +49,13 @@ CWRemoteSoundSource {
 
 	// sound functions:
 
-	setPlaybackState {arg playbackState;
-		dataspace.put(\setPlaybackState, playbackState);
+	playBuffer {arg bufferNumber;
+		dataspace.put(\playBuffer, bufferNumber);
+		// set volume here too
+	}
+
+	stopBuffer {arg playbackState, bufferNumber;
+		dataspace.put(\stopBuffer);
 	}
 
 	setVolume {arg volume;
@@ -76,22 +81,26 @@ CWNetworkedSoundSource : CWSoundSource {
 			seesServers: false,
 			sharesSynthDefs: false,
 			verbose: false,
-			doWhenMeAdded: {this.initCallBack}
+			doWhenMeAdded: {this.doWhenMeAdded},
 			doWhenBooted: {this.doWhenBooted}
 		);
 	}
 
-	initCallBack {
-		utopian.node.addrBook.peers.postln;
-		// name = 'soundSource' ++ index;
+	doWhenMeAdded {
+		name = 'soundSource' ++ index;
 		// inform("registering with name: " ++ name);
-		// utopian.node.register(name);
-		// this.initDataSpace;
+		utopian.node.register(name);
+		this.initDataSpace;
+	}
+
+	doWhenBooted {
+		server = utopian.server;
+		super.doWhenBooted;
 	}
 
 	initDataSpace{
 		var oscPath;
-		oscPath = '\soundSource' ++ index;
+		oscPath = '/soundSource' ++ index;
 		inform("initialising data space for: " ++ oscPath);
 		dataspace = OSCDataSpace(utopian.node.addrBook, utopian.node.me, oscPath);
 		dataspace.addDependant({arg dataspace, val, key, value;
@@ -156,14 +165,16 @@ CWNetworkedSoundSource : CWSoundSource {
 			}
 		}
 		// sound functions:
-		{key == \setPlaybackState } {
-			var isPlaying, bufferNumber;
-			# isPlaying, bufferNumber = value;
-			if (isPlaying) {
-				this.startPlaying(bufferNumber);
-			} {
-				this.stopPlaying;
-			}
+		{key == \playBuffer } {
+			var bufferNumber;
+			bufferNumber = value;
+			this.startPlaying(bufferNumber);
+		}
+		{
+			key == \stopBuffer;
+		}
+		{
+			this.stopPlaying;
 		}
 		{key == \setVolume } {
 			this.setPlayVolume(value);
@@ -177,20 +188,24 @@ CWSoundSource {
 	var index, simulated, pathToSoundFiles, server, <buffers, playSynth, <amplitude;
 
 	*new {arg index, simulated = false, pathToSoundFiles ,server;
-		^super.newCopyArgs(index, simulated, pathToSoundFiles, server).init;
+		^super.newCopyArgs(index, simulated, pathToSoundFiles, server);
+		// .init;
 	}
 
-	init {
-		// server ?? { server = Server.default }; // use default if none given
-		fork {
-			server.boot;
-			server.bootSync;
-			this.doWhenBooted;
-		}
-	}
+	// TODO: how to run this without messing with the init from CWNetworkedSoundSource
+
+	// init {
+	// 	\imhere.postln;
+	// 	// server ?? { server = Server.default }; // use default if none given
+	// 	fork {
+	// 		server.boot;
+	// 		server.bootSync;
+	// 		this.doWhenBooted;
+	// 	}
+	// }
 
 	doWhenBooted {
-		this.receiveAmplitudeFromSynth;
+		this.initAmplitudeResponder;
 		this.initSynthDef;
 		this.readBuffers;
 	}
@@ -210,14 +225,13 @@ CWSoundSource {
 
 	}
 
-	receiveAmplitudeFromSynth {
+	initAmplitudeResponder {
 		OSCFunc({arg msg;
 			# amplitude = msg.drop(3);
 		}, '/soundSourceAmplitude')
 	}
 
 	readBuffers {
-		pathToSoundFiles.postln;
 		buffers = PathName(pathToSoundFiles).files.collect{arg filePathName;
 			inform("reading: %".format(filePathName.fileName));
 			Buffer.read(server, filePathName.fullPath);
@@ -230,7 +244,7 @@ CWSoundSource {
 
 	startPlaying {arg buffer, amplitude = 1;
 		this.stopPlaying;
-		playSynth = Synth(\soundSourcePlayer, [\buffer, buffer, \amp, amplitude]);
+		playSynth = Synth(\soundSourcePlayer, [\buffer, buffer, \amp, amplitude], target: server);
 		NodeWatcher.register(playSynth);
 	}
 

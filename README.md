@@ -6,6 +6,16 @@
 - three classes at the moment: Megaphone, SoundPlayer, and MegaGUI
 
 To Do List:
+// first, check the networked megaphone and sound source work individually, get them working with utopian
+
+- TODO: fix fact that when joining, peers come online twice (causes two servers to be booted)
+- TODO: apply changes to Registrar/Registrant that were applied to DecentralisedNode
+- TODO: GUI doesn't pick up megaphones or sound sources that already exist
+-- tested with NMLDecentralisedNode and it works fine
+- TODO: addrbook misses some megaphones or sound sources (even though their color changes)
+-- actually two peers have the same node id, and replace each other
+-- registering slowly solves the problem
+- TODO: adapt NMLDecentralisedNode as megaphone doesn't need to listen for responses from others (what do we do about this, as peers need to listen for themselves to check they are online)
 - TODO: Utopian: what is the state of play, does it work?
 - TODO: finalise collaborative GUI, think of ways to control this as a score
 - TODO: finalise GUI in general (new format - in a line)
@@ -19,6 +29,8 @@ To Do List:
 -- megaphones and sound sources will boot and announce themselves
 -- they do not need to know about each other or the laptops
 -- laptops will come online and see these resources
+-- each sound source and megaphone will have a specific number (hardcode on beagleboards)
+-- need to represent on GUI which megaphones are online
 
 - megaphones need to:
 -- announce themselves

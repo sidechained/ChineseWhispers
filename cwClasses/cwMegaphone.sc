@@ -33,33 +33,45 @@ warn("server not running, cannot create megaphone buffer");
 
 CWNetworkedMegaphone : CWMegaphone {
 
-	var myNode, <gui;
-	var <dataSpace;
+	// networked megaphone
+	// - will act as a Decentralised Node on the network
+	// - will announce itself under its name + index number (hardcoded)
+
+	var <node, name, <gui, <dataSpace;
 	var <controlledBy, <positionControlledBy, <recordingControlledBy, <playbackControlledBy, <volumeControlledBy;
 
-	*new {arg argMyNode, index, noOfMegaphones;
-		^super.new(index, noOfMegaphones).initNetworkedMegaphone(argMyNode);
+	*new {arg index, simulated = false;
+		^super.new(index, simulated).initNetworkedMegaphone;
 	}
 
-	initNetworkedMegaphone {arg argMyNode;
-		myNode = argMyNode;
-		gui = MegaphoneControlGUI.new(this);
+	initNetworkedMegaphone {
+		node = NMLDecentralisedNode(peerStartingPort: 4000);
+		node.doWhenMeAddedFunc_({this.initCallBack}); // call back when 'me' exists
+	}
+
+	initCallBack {
+		name = 'megaphone' ++ index.asSymbol;
+		inform("registering with name: " ++ name);
+		node.register(name);
 		this.initDataSpace;
 	}
 
 	initDataSpace{
-		dataSpace = OSCDataSpace(myNode.addrBook, myNode.me, '/megaphone' ++ index.asSymbol);
+		inform("initialising data space for: " ++ name);
+		dataSpace = OSCDataSpace(node.addrBook, node.me, name);
 		dataSpace.addDependant({arg dataSpace, val, key, value;
 			this.updateState(key, value);
 		});
 	}
+
+
 
 	takeControl {
 		this.takeControlOfPosition(());
 		this.takeControlOfRecording(());
 		this.takeControlOfPlayback(());
 		this.takeControlOfVolume(());
-		dataSpace.put(\controlledBy, myNode.me.id);
+		dataSpace.put(\controlledBy, node.me.id);
 	}
 
 	relinquishControl {
@@ -71,19 +83,19 @@ CWNetworkedMegaphone : CWMegaphone {
 	}
 
 	takeControlOfPosition {
-		dataSpace.put(\positionControlledBy, myNode.me.id);
+		dataSpace.put(\positionControlledBy, node.me.id);
 	}
 
 	takeControlOfRecording {
-		dataSpace.put(\recordingControlledBy, myNode.me.id);
+		dataSpace.put(\recordingControlledBy, node.me.id);
 	}
 
 	takeControlOfPlayback {
-		dataSpace.put(\playbackControlledBy, myNode.me.id);
+		dataSpace.put(\playbackControlledBy, node.me.id);
 	}
 
 	takeControlOfVolume {
-		dataSpace.put(\volumeControlledBy, myNode.me.id);
+		dataSpace.put(\volumeControlledBy, node.me.id);
 	}
 
 	relinquishControlOfPosition {
@@ -103,7 +115,7 @@ CWNetworkedMegaphone : CWMegaphone {
 	}
 
 	setPosition {arg position;
-		if (positionControlledBy == myNode.me.id) {
+		if (positionControlledBy == node.me.id) {
 			dataSpace.put(\setPosition, position);
 		} {
 			warn("you are not in control of this megaphone");
@@ -111,7 +123,7 @@ CWNetworkedMegaphone : CWMegaphone {
 	}
 
 	setRecordState {arg recordState;
-		if (recordingControlledBy == myNode.me.id) {
+		if (recordingControlledBy == node.me.id) {
 			dataSpace.put(\setRecordState, recordState);
 		} {
 			warn("you are not in control of this megaphone");
@@ -119,7 +131,7 @@ CWNetworkedMegaphone : CWMegaphone {
 	}
 
 	setPlaybackState {arg playbackState;
-		if (playbackControlledBy == myNode.me.id) {
+		if (playbackControlledBy == node.me.id) {
 			dataSpace.put(\setPlaybackState, playbackState);
 		} {
 			warn("you are not in control of this megaphone");
@@ -127,7 +139,7 @@ CWNetworkedMegaphone : CWMegaphone {
 	}
 
 	setVolume {arg volume;
-		if (volumeControlledBy == myNode.me.id) {
+		if (volumeControlledBy == node.me.id) {
 			dataSpace.put(\setVolume, volume);
 		} {
 			warn("you are not in control of this megaphone");
@@ -136,6 +148,7 @@ CWNetworkedMegaphone : CWMegaphone {
 
 	updateState {arg key, value;
 		case
+		// shared control:
 		{
 			(key == \controlledBy) ||
 			(key == \positionControlledBy) ||
@@ -147,9 +160,19 @@ CWNetworkedMegaphone : CWMegaphone {
 				gui.control(key, value);
 			}
 		}
+		// sound functions:
 		{key == \setPosition } {
 			// how about abstract positions...faceNext, etc?
-			this.turnTo(value);
+			this.setPosition(value);
+		}
+		{key == \faceIn } {
+			this.setPosition(0); // TODO: replace with real world value
+		}
+		{key == \faceOut } {
+			this.setPosition(2pi/2); // TODO: replace with real world value
+		}
+		{key == \faceNext } {
+			this.setPosition(2pi/4); // TODO: replace with real world value
 		}
 		{key == \setPlaybackState } {
 			var isPlaying;
@@ -176,95 +199,36 @@ CWNetworkedMegaphone : CWMegaphone {
 
 }
 
-MegaphoneControlGUI {
-
-	var megaphone, <mainView, paramFuncArray, <controllingColorViewDict;
-	var defaultBackgroundColor;
-
-	*new {arg megaphone;
-		^super.newCopyArgs(megaphone).init;
-	}
-
-	init {
-		defaultBackgroundColor = Color.black;
-		controllingColorViewDict = IdentityDictionary.new;
-		paramFuncArray = [
-			[\controlledBy, "all", { megaphone.takeControl }, { megaphone.relinquishControl } ],
-			[\positionControlledBy, "pos", { megaphone.takeControlOfPosition }, { megaphone.relinquishControlOfPosition } ],
-			[\recordingControlledBy, "rec", { megaphone.takeControlOfRecording }, { megaphone.relinquishControlOfRecording } ],
-			[\playbackControlledBy, "play", { megaphone.takeControlOfPlayback }, { megaphone.relinquishControlOfPlayback } ],
-			[\volumeControlledBy, "vol", { megaphone.takeControlOfVolume }, { megaphone.relinquishControlOfVolume } ]
-		];
-		mainView = this.makeMainView(megaphone);
-	}
-
-	makeRow {arg key, paramName, takeControlFunc, relinquishControlFunc;
-		var allButton, rButton, controllingColorView;
-		allButton =	Button()
-		.fixedSize_(Size(43, 26))
-		.states_([[paramName]])
-		.action_(takeControlFunc);
-		rButton = Button()
-		.fixedSize_(Size(23, 26))
-		.states_([["r"]])
-		.action_(relinquishControlFunc);
-		controllingColorView = View()
-		.fixedSize_(Size(43, 26))
-		.background_(defaultBackgroundColor);
-		controllingColorViewDict.put(key, controllingColorView);
-		^View().layout_(HLayout(*[allButton, rButton, controllingColorView]).spacing_(0).margins_(0))
-	}
-
-	makeMainView {
-		var rows, mainView;
-		rows = paramFuncArray.collect{arg paramFuncArray;
-			var key, paramName, takeControlFunc, relinquishControlFunc;
-			# key, paramName, takeControlFunc, relinquishControlFunc = paramFuncArray;
-			this.makeRow(key, paramName, takeControlFunc, relinquishControlFunc)};
-		mainView = View(nil, Rect(0, 0, 50, 100));
-		mainView.layout_(VLayout(*rows).spacing_(4).margins_(0));
-		^mainView;
-	}
-
-	mapIdToColor {arg id;
-		if (id.isNil) {
-			^Color.black;
-		} {
-			^Color.hsv(id, 1, 1); // TODO: need better colour mapping strategy than this!
-		}
-	}
-
-	control {arg key, value;
-		var color;
-		if (value == \reset) {color = defaultBackgroundColor} { color = this.mapIdToColor(value) };
-		controllingColorViewDict[key].background_(color);
-	}
-
-}
-
 CWMegaphone {
 
-	// TODO: recording volume should be set constantly, as can record whilst the megaphone is moving
+	// TODO: recording volume shoulwd be set constantly, as can record whilst the megaphone is moving
 
-	var index, noOfMegaphones, startingAngle, <currentAngle = 0, turnSpeed, <buffer, bufDur, recSynth, recStartTime, playSynth, turner, <isTurning = false;
+	var index, simulated, startingAngle, <currentAngle = 0, turnSpeed;
+	var <buffer, bufDur, recSynth, recStartTime, playSynth, turner, <isTurning = false, pythonAddr;
 
 	// angle 0 = facing out
 	// angle pi = facing in
 
-	*new {arg index, noOfMegaphones;
-		^super.newCopyArgs(index, noOfMegaphones).initMegaphone;
+	*new {arg index, simulated = false;
+		^super.newCopyArgs(index, simulated).initMegaphone;
 	}
 
 	initMegaphone {
 		// server boot stuff should be in here, if the server isn't booted the instance of megaphone shouldn't be created at all
 		var angleSegment;
-		angleSegment = 2pi/noOfMegaphones;
+		angleSegment = 2pi/5.rand; // temp for now
 		startingAngle = angleSegment * index;
 		currentAngle = startingAngle;
 		turnSpeed = 2pi / 100;
 		// use default server here
-		buffer = Buffer.alloc(Server.default, Server.default.sampleRate * 10); // allocate a ten second buffer
-		this.initSynthDefs;
+		if (simulated) {
+			buffer = Buffer.alloc(Server.default, Server.default.sampleRate * 10); // allocate a ten second buffer
+			this.initSynthDefs;
+			inform("running simulated megaphone")
+		} {
+			pythonAddr = NetAddr("127.0.0.1", 10000);
+			inform("running real megaphone")
+		};
 	}
 
 	initSynthDefs {
@@ -304,9 +268,21 @@ CWMegaphone {
 	}
 
 	startRecording {
+		if (simulated.not) {
+			this.startRealRecording;
+		}
+		{
+			this.startSimulatedRecording;
+		}
+	}
+
+	startRealRecording {
+		pythonAddr.sendMsg('/megaphone/record', 1); // HIGH
+	}
+
+	startSimulatedRecording {
 		if (this.isRecording.not) {
 			var recAmp;
-
 			recAmp = (currentAngle - startingAngle).linlin(0, 2pi/2, 1, 0.2); // recording volume determined by position
 			recSynth = Synth(\megaphoneRecorder, [\buffer, buffer, \recAmp, recAmp], addAction: \addToTail);
 			recStartTime = Main.elapsedTime;
@@ -319,6 +295,19 @@ CWMegaphone {
 	}
 
 	stopRecording {
+		if (simulated.not) {
+			this.stopRealRecording;
+		}
+		{
+			this.stopSimulatedRecording;
+		}
+	}
+
+	stopRealRecording {
+		pythonAddr.sendMsg('/megaphone/record', 0); // LOW
+	}
+
+	stopSimulatedRecording {
 		if (this.isRecording) {
 			bufDur = Main.elapsedTime - recStartTime;
 			recSynth.free;
@@ -328,6 +317,19 @@ CWMegaphone {
 	}
 
 	startPlaying {arg amplitude;
+		if (simulated.not) {
+			this.startRealPlaying(amplitude);
+		}
+		{
+			this.startSimulatedPlaying(amplitude);
+		}
+	}
+
+	startRealPlaying {
+		pythonAddr.sendMsg('/megaphone/play', 1); // HIGH
+	}
+
+	startSimulatedPlaying {arg amplitude;
 		if (this.isPlaying.not) {
 			playSynth = Synth(\megaphonePlayer, [\buffer, buffer, \amp, amplitude, \loopDur, bufDur]);
 			NodeWatcher.register(playSynth);
@@ -338,6 +340,19 @@ CWMegaphone {
 	}
 
 	stopPlaying {
+		if (simulated.not) {
+			this.stopRealPlaying;
+		}
+		{
+			this.stopSimulatedPlaying;
+		}
+	}
+
+	stopRealPlaying {
+		pythonAddr.sendMsg('/megaphone/play', 0); // LOW
+	}
+
+	stopSimulatedPlaying {
 		if (this.isPlaying) {
 			playSynth.free;
 		} {
@@ -346,6 +361,19 @@ CWMegaphone {
 	}
 
 	setPlayVolume {arg amp;
+		if (simulated.not) {
+			this.setRealPlayVolume(amp);
+		}
+		{
+			this.setSimulatedPlayVolume(amp);
+		}
+	}
+
+	setRealPlayVolume {arg amp;
+		pythonAddr.sendMsg('/megaphone/volume', amp);
+	}
+
+	setSimulatedPlayVolume {arg amp;
 		if (this.isPlaying) {
 			playSynth.set(\amp, amp);
 		} {
@@ -354,18 +382,31 @@ CWMegaphone {
 	}
 
 	faceOut {
-		this.turnTo(startingAngle);
+		this.setPosition(startingAngle);
 	}
 
 	faceIn {
-		this.turnTo(startingAngle + (2pi/2));
+		this.setPosition(startingAngle + (2pi/2));
 	}
 
 	faceNext {
-		this.turnTo(startingAngle + (2pi * 0.25));
+		this.setPosition(startingAngle + (2pi * 0.25));
 	}
 
-	turnTo {arg targetAngle;
+	setPosition {arg targetAngle;
+		if (simulated.not) {
+			this.setRealPosition(targetAngle);
+		}
+		{
+			this.setSimulatedPosition(targetAngle);
+		}
+	}
+
+	setRealPosition {arg targetAngle;
+		pythonAddr.sendMsg('/megaphone/position', targetAngle); // HIGH
+	}
+
+	setSimulatedPosition {arg targetAngle;
 		var direction, condition;
 		if (targetAngle > currentAngle) { // what if they are equal?
 			direction = 1; // go forwards
