@@ -1,3 +1,14 @@
+OSCDataSpace
+r[0].takeControl;
+r[0].takeControlOfPlayback;
+c.takeControlOfVolume;
+c.relinquishControl;
+c.relinquishControlOfPlayback;
+c.relinquishControlOfVolume;
+c.playBuffer(0, 0.5); // buffer num, initial volume
+c.setVolume(0.8);
+c.stopBuffer;
+
 // core issue of 'me', for me:
 // a peer cannot bind responders to a particular address and port until it knows an appropriate address to bind to
 // the only way to know this is to receive the address externally
@@ -43,7 +54,7 @@ z = [];
 Routine({
 	 2.collect({arg i;
 		var n;
-		n = CWNetworkedSoundSource(i+1, simulated: true, pathToSoundFiles: sfp); // don't start from 0
+		n = CWSharedRemoteSoundSource(i+1, simulated: true, pathToSoundFiles: sfp); // don't start from 0
 		z = z.add(n);
 		3.wait;
 	})
@@ -79,12 +90,13 @@ c.node.me.id
 c.takeControl;
 c.takeControlOfPlayback;
 c.takeControlOfVolume;
+c.relinquishControl;
 c.relinquishControlOfPlayback;
 c.relinquishControlOfVolume;
 // sound tests:
-c.playBuffer(0, 0.5); // initial volume
+c.playBuffer(0, 0.5); // buffer num, initial volume
+c.setVolume(0.8);
 c.stopBuffer;
-c.setVolume(0.1);
 // dataspace checks:
 c.dataspace.keys
 c.dataspace.values

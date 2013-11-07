@@ -5,7 +5,7 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 	// dataspace is the laptop dataspace
 	// control functions:
 
-	var <sharedLaptopDataSpace, <controlledBy, <playbackControlledBy, <volumeControlledBy;
+	var <sharedControlSpace, <controlledBy, <playbackControlledBy, <volumeControlledBy;
 
 	*new {arg index, node;
 		^super.new(index, node).initSharedRemoteSoundSource;
@@ -13,20 +13,20 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 
 	initSharedRemoteSoundSource {
 		// this will need to be at a higher level
-		sharedLaptopDataSpace = OSCDataSpace(node.addrBook, node.me, oscPath: '/sharedLaptopDataSpace');
+		sharedControlSpace = OSCDataSpace(node.addrBook, node.me, oscPath: '/sharedControlSpace');
 	}
 
 	takeControl {
 		this.takeControlOfPlayback(());
 		this.takeControlOfVolume(());
-		sharedLaptopDataSpace.put(\controlledBy, node.me.id);
+		sharedControlSpace.put(\controlledBy, node.me.id);
 	}
 
 	relinquishControl {
-		if (sharedLaptopDataSpace.at(\playbackControlledBy) == node.me.id) {
+		if (sharedControlSpace.at(\controlledBy) == node.me.id) {
 			this.relinquishControlOfPlayback(());
 			this.relinquishControlOfVolume(());
-			sharedLaptopDataSpace.put(\controlledBy, \reset);
+			sharedControlSpace.put(\controlledBy, \reset);
 			// cannot use nil as it gets converted to a 0 over network
 		} {
 			warn("you are not in control of this sound source");
@@ -34,25 +34,25 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 	}
 
 	takeControlOfPlayback {
-		sharedLaptopDataSpace.put(\playbackControlledBy, node.me.id);
+		sharedControlSpace.put(\playbackControlledBy, node.me.id);
 	}
 
 	takeControlOfVolume {
-		sharedLaptopDataSpace.put(\volumeControlledBy, node.me.id);
+		sharedControlSpace.put(\volumeControlledBy, node.me.id);
 	}
 
 	relinquishControlOfPlayback {
 		// TODO only if sound not playing
-		if (sharedLaptopDataSpace.at(\playbackControlledBy) == node.me.id) {
-			sharedLaptopDataSpace.put(\playbackControlledBy, \reset);
+		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
+			sharedControlSpace.put(\playbackControlledBy, \reset);
 		} {
 			warn("you are not in control of this parameter");
 		};
 	}
 
 	relinquishControlOfVolume {
-		if (sharedLaptopDataSpace.at(\volumeControlledBy) == node.me.id) {
-			sharedLaptopDataSpace.put(\volumeControlledBy, \reset);
+		if (sharedControlSpace.at(\volumeControlledBy) == node.me.id) {
+			sharedControlSpace.put(\volumeControlledBy, \reset);
 		} {
 			warn("you are not in control of this parameter");
 		};
@@ -61,7 +61,7 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 	// sound functions:
 
 	playBuffer {arg bufferNumber, volume;
-		if (sharedLaptopDataSpace.at(\playbackControlledBy) == node.me.id) {
+		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
 			^super.playBuffer(bufferNumber, volume);
 		} {
 			warn("you are not in control of this parameter");
@@ -69,7 +69,7 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 	}
 
 	stopBuffer {
-		if (sharedLaptopDataSpace.at(\playbackControlledBy)  == node.me.id) {
+		if (sharedControlSpace.at(\playbackControlledBy)  == node.me.id) {
 			^super.stopBuffer;
 		} {
 			warn("you are not in control of this parameter");
@@ -77,7 +77,7 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 	}
 
 	setVolume {arg volume;
-		if (sharedLaptopDataSpace.at(\volumeControlledBy) == node.me.id) {
+		if (sharedControlSpace.at(\volumeControlledBy) == node.me.id) {
 			^super.setVolume(volume);
 		} {
 			warn("you are not in control of this parameter");
@@ -253,7 +253,7 @@ CWSoundSource {
 	}
 
 	setVolume {arg volume;
-		if (this.isPlaying) { \getsHereOrNot.postln; playSynth.set(\amp, volume); } { warn("sound source not playing!") };
+		if (this.isPlaying) { playSynth.set(\amp, volume); } { warn("sound source not playing!") };
 	}
 
 }
