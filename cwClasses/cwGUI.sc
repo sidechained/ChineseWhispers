@@ -2,7 +2,7 @@ CWLaptop {
 
 	// one utopian, many remote objects (megaphones and sound sources)
 
-	var index, <utopian, <soundSources;
+	var index, <utopian, <megaphones, <soundSources;
 	// index won't make sense in the end
 
 	*new {arg index;
@@ -21,11 +21,13 @@ CWLaptop {
 		// name the laptop (for ease of recongition in the addrBook)
 		utopian.node.register('laptop' ++ index);
 		// add megaphones:
-		// -TODO
-		// add sound sources:
-		soundSources = 2.collect{arg index;
-			CWSharedRemoteSoundSource(index, utopian.node);
+		megaphones = 2.collect{arg index;
+			CWSharedRemoteMegaphone(index, utopian.node);
 		};
+		// add sound sources:
+		// soundSources = 2.collect{arg index;
+		// 	CWSharedRemoteSoundSource(index, utopian.node);
+		// };
 	}
 
 }

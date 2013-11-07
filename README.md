@@ -25,7 +25,6 @@ To Do List:
 
 // revisit GUI classes
 
-
 - TODO: shouldn't be able to relinquish control if a sound is playing
 - TODO: fix fact that when joining, peers come online twice (causes two servers to be booted)
 - TODO: apply changes to Registrar/Registrant that were applied to DecentralisedNode

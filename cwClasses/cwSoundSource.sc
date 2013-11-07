@@ -5,16 +5,17 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 	// dataspace is the laptop dataspace
 	// control functions:
 
-	var <sharedControlSpace, <controlledBy, <playbackControlledBy, <volumeControlledBy;
+	var <sharedControlSpace;
 
 	*new {arg index, node;
 		^super.new(index, node).initSharedRemoteSoundSource;
 	}
 
 	initSharedRemoteSoundSource {
-		// this will need to be at a higher level
 		sharedControlSpace = OSCDataSpace(node.addrBook, node.me, oscPath: '/sharedControlSpace');
 	}
+
+	// shared control:
 
 	takeControl {
 		this.takeControlOfPlayback(());
@@ -58,19 +59,19 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 		};
 	}
 
-	// sound functions:
+	// shared actuation:
 
-	playBuffer {arg bufferNumber, volume;
+	play {arg bufferNumber, volume;
 		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
-			^super.playBuffer(bufferNumber, volume);
+			^super.play(bufferNumber, volume);
 		} {
 			warn("you are not in control of this parameter");
 		};
 	}
 
-	stopBuffer {
+	stop {
 		if (sharedControlSpace.at(\playbackControlledBy)  == node.me.id) {
-			^super.stopBuffer;
+			^super.stop;
 		} {
 			warn("you are not in control of this parameter");
 		};
@@ -104,15 +105,15 @@ CWRemoteSoundSource {
 		dataspace = OSCDataSpace(node.addrBook, node.me, oscPath: oscPath);
 	}
 
-	// sound functions:
+	// actuation:
 
-	playBuffer {arg bufferNumber, volume;
-		dataspace.put(\playBuffer, [bufferNumber, volume].asBinaryArchive);
+	play {arg bufferNumber, volume;
+		dataspace.put(\play, [bufferNumber, volume].asBinaryArchive);
 		// binary archiving is a workaround which make it possible send more than one value
 	}
 
-	stopBuffer {arg playbackState, bufferNumber;
-		dataspace.put(\stopBuffer);
+	stop {
+		dataspace.put(\stop);
 	}
 
 	setVolume {arg volume;
@@ -125,10 +126,10 @@ CWLocalSoundSource : CWSoundSource {
 
 	// this will run on the beagleboard
 
-	var <utopian, name, <gui, <dataspace;
+	var <utopian, name, <dataspace;
 
-	*new {arg index, simulated = false, pathToSoundFiles;
-		^super.new(index, simulated, pathToSoundFiles).init;
+	*new {arg index, pathToSoundFiles;
+		^super.new(index, pathToSoundFiles).init;
 	}
 
 	init {
@@ -168,15 +169,13 @@ CWLocalSoundSource : CWSoundSource {
 
 	updateState {arg key, value;
 		case
-		// shared control:
-		{ (key == \controlledBy) || (key == \playbackControlledBy) } { defer { gui.control(key, value) } }
 		// sound functions:
-		{ key == \playBuffer } {
+		{ key == \play } {
 			var bufferNumber, initialVolume;
 			# bufferNumber, initialVolume = value.unarchive;
 			this.startPlaying(bufferNumber, initialVolume);
 		}
-		{ key == \stopBuffer } { this.stopPlaying }
+		{ key == \stop } { this.stopPlaying }
 		{ key == \setVolume } { this.setVolume(value) }
 	}
 
@@ -184,10 +183,10 @@ CWLocalSoundSource : CWSoundSource {
 
 CWSoundSource {
 
-	var index, simulated, pathToSoundFiles, server, <buffers, playSynth, <amplitude;
+	var index, pathToSoundFiles, server, <buffers, playSynth, <amplitude;
 
-	*new {arg index, simulated = false, pathToSoundFiles ,server;
-		^super.newCopyArgs(index, simulated, pathToSoundFiles, server);
+	*new {arg index, pathToSoundFiles ,server;
+		^super.newCopyArgs(index, pathToSoundFiles, server);
 		// .init;
 	}
 
@@ -210,9 +209,7 @@ CWSoundSource {
 	}
 
 	initSynthDef {
-
 		// TODO: could check to see if these exist first before adding:
-
 		SynthDef(\soundSourcePlayer, {arg buffer, amp = 1;
 			// inject a sound file into the system
 			// should not loop
@@ -222,7 +219,6 @@ CWSoundSource {
 			SendReply.kr(Impulse.kr(20), '/soundSourceAmplitude', [Amplitude.kr(out)] );
 			Out.ar(0, out);
 		}).add;
-
 	}
 
 	initAmplitudeResponder {
