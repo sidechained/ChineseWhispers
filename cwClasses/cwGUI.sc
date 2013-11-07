@@ -1,3 +1,35 @@
+CWLaptop {
+
+	// one utopian, many remote objects (megaphones and sound sources)
+
+	var index, <utopian, <soundSources;
+	// index won't make sense in the end
+
+	*new {arg index;
+		^super.newCopyArgs(index).init;
+	}
+
+	init {
+		utopian = NMLUtopian(
+			topology: \decentralised,
+			hasServer: false,
+			doWhenMeAdded: {this.doWhenMeAdded}
+		);
+	}
+
+	doWhenMeAdded {
+		// name the laptop (for ease of recongition in the addrBook)
+		utopian.node.register('laptop' ++ index);
+		// add megaphones:
+		// -TODO
+		// add sound sources:
+		soundSources = 2.collect{arg index;
+			CWSharedRemoteSoundSource(index, utopian.node);
+		};
+	}
+
+}
+
 CWGUI {
 
 	//
@@ -387,10 +419,10 @@ CWGUI {
 		}
 	}
 
-/*	control {arg key, value;
-		var color;
-		if (value == \reset) {color = defaultBackgroundColor} { color = this.mapIdToColor(value) };
-		paramButtonDict[key].background_(color);
+	/*	control {arg key, value;
+	var color;
+	if (value == \reset) {color = defaultBackgroundColor} { color = this.mapIdToColor(value) };
+	paramButtonDict[key].background_(color);
 	}*/
 
 }
