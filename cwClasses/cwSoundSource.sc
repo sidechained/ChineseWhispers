@@ -92,7 +92,7 @@ CWRemoteSoundSource {
 	// wrapper class which exposes functionality of a sound source to remote peers on the network
 	// this will run on each laptop
 
-	var index, <node, name, <dataspace;
+	var index, <node, <name, <dataspace;
 
 	*new {arg index, node;
 		^super.newCopyArgs(index, node).initRemoteSoundSource;
@@ -154,8 +154,6 @@ CWLocalSoundSource : CWSoundSource {
 
 	doWhenMeAdded {
 		name = ('soundSource' ++ index).asSymbol;
-		name.postln;
-		name.class.postln;
 		// inform("registering with name: " ++ name);
 		utopian.node.register(name);
 		this.initDataSpace;

@@ -175,7 +175,7 @@ CWRemoteMegaphone {
 
 	// actuation
 
-	var index, <node, name, <dataspace;
+	var index, <node, <name, <dataspace;
 
 	*new {arg index, node;
 		^super.newCopyArgs(index, node).initRemoteMegaphone;
