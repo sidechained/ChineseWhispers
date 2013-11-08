@@ -116,7 +116,6 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		} {
 			warn("you are not in control of this parameter");
 		};
-
 	}
 
 	// shared actuation:
@@ -190,33 +189,43 @@ CWRemoteMegaphone {
 	}
 
 	setPosition {arg position;
-		dataspace.put(\setPosition, position);
+		node.addrBook.sendName(name, \setPosition, position);
 	}
 
-	record {
-		dataspace.put(\record);
+	startRecording {
+		node.addrBook.sendName(name, \startRecording);
 	}
 
 	stopRecording {
-		dataspace.put(\stopRecording);
+		node.addrBook.sendName(name, \stopRecording);
 	}
 
-	play {
-		dataspace.put(\play);
+	startPlaying {
+		node.addrBook.sendName(name, \startPlaying);
 	}
 
 	stopPlaying {
-		dataspace.put(\stopPlaying);
+		node.addrBook.sendName(name, \stopPlaying);
 	}
 
 	setPlayVolume {arg volume;
-		dataspace.put(\setPlayVolume, volume);
+		node.addrBook.sendName(name, \setPlayVolume, volume);
 	}
 
 	//
 
 	isOnline {
 		^node.addrBook.atName(name) !? { node.addrBook.atName(name).online } ?? { false }
+	}
+
+	isRecording {
+		// OSC converts booleans to 1's and 0's, so must convert back here
+		^dataspace.at(\isRecording) !? {dataspace.at(\isRecording).asBoolean} ?? { false };
+	}
+
+	isPlaying {
+		// OSC converts booleans to 1's and 0's, so must convert back here
+		^dataspace.at(\isPlaying) !? {dataspace.at(\isPlaying).asBoolean} ?? { false };
 	}
 
 }
@@ -255,68 +264,102 @@ CWLocalMegaphone {
 				doWhenBooted: nil
 			);
 			megaphone = CWRealMegaphone(index, utopian.node);
-		}
+		};
 	}
 
 	doWhenMeAdded {
 		name = ('megaphone' ++ index).asSymbol;
 		// inform("registering with name: " ++ name);
 		utopian.node.register(name);
+		this.initResponders;
 		this.initDataSpace;
 	}
 
-	initDataSpace{
+	initDataSpace {
 		var oscPath;
 		oscPath = '/' ++ name;
 		inform("initialising data space for: " ++ oscPath);
 		dataspace = OSCDataSpace(utopian.node.addrBook, utopian.node.me, oscPath);
-		dataspace.addDependant({arg dataspace, val, key, value;
-			this.updateState(key, value);
-		});
+		/*		dataspace.addDependant({arg dataspace, val, key, value;
+		this.updateState(key, value);
+		});*/
 	}
 
-	updateState {arg key, value;
-		case
-		// sound functions:
-		{key == \setPosition } { // how about abstract positions...faceNext, etc?
-			[\setPosition, value].postln;
-			megaphone.setPosition(value);
-		}
+	initResponders {
+
+		// provide option to free these?
+
+		/*		OSCFunc({arg msg;
+		var position;
+		# position = msg.drop(1);
+		megaphone.setPosition(position);
+		}, '\setPosition', recvPort: utopian.node.me.addr.port);
+
 		{key == \faceIn } {
-			megaphone.setPosition(0); // TODO: replace with real world value
+		megaphone.setPosition(0); // TODO: replace with real world value
 		}
 		{key == \faceOut } {
-			megaphone.setPosition(2pi/2); // TODO: replace with real world value
+		megaphone.setPosition(2pi/2); // TODO: replace with real world value
 		}
 		{key == \faceNext } {
-			megaphone.setPosition(2pi/4); // TODO: replace with real world value
-		}
-		{key == \record } {
-			[\record].postln;
-			megaphone.record;
-		}
-		{key == \stopRecording } {
+		megaphone.setPosition(2pi/4); // TODO: replace with real world value
+		}		*/
+
+		OSCFunc({arg msg;
+			[\startRecording].postln;
+			this.doStartRecording;
+		}, '\startRecording', recvPort: utopian.node.me.addr.port).postln;
+
+		OSCFunc({arg msg;
 			[\stopRecording].postln;
-			megaphone.stopRecording;
-		}
-		{key == \play } {
-			[\play].postln;
-			megaphone.play;
-		}
-		{key == \stopPlaying } {
+			this.doStopRecording;
+		}, '\stopRecording', recvPort: utopian.node.me.addr.port).postln;
+
+		OSCFunc({arg msg;
+			var initialVolume;
+			# initialVolume = msg.drop(1);
+			[\startPlaying].postln;
+			this.doStartPlaying(initialVolume);
+		}, '\startPlaying', recvPort: utopian.node.me.addr.port);
+
+		OSCFunc({arg msg;
 			[\stopPlaying].postln;
-			megaphone.stopPlaying;
-		}
-		{key == \setPlayVolume } {
-			[\setPlayVolume, value].postln;
-			megaphone.setPlayVolume(value);
-		}
+			this.doStopPlaying;
+		}, '\stopPlaying', recvPort: utopian.node.me.addr.port);
+
+		OSCFunc({arg msg;
+			var volume;
+			# volume = msg.drop(1);
+			[\setPlayVolume].postln;
+			this.doSetPlayVolume(volume);
+		}, '\setPlayVolume', recvPort: utopian.node.me.addr.port);
+
 	}
 
-	//
+	doStartRecording {
+		\localMegaphonedoStartRecording.postln;
+		dataspace.put(\isRecording, true);
+		megaphone.doStartRecording;
+	}
 
-	isPlaying {
+	doStopRecording {
+		\localMegaphonedoStopRecording.postln;
+		dataspace.put(\isRecording, false);
+		megaphone.doStopRecording;
+	}
 
+	doStartPlaying {arg initialVolume;
+		dataspace.put(\isPlaying, true);
+		megaphone.doStartPlaying(initialVolume);
+	}
+
+	doStopPlaying {
+		dataspace.put(\isPlaying, false);
+		megaphone.doStopPlaying;
+	}
+
+	doSetPlayVolume {arg volume;
+		megaphone.doSetPlayVolume(volume);
 	}
 
 }
@@ -325,23 +368,22 @@ CWSimulatedMegaphone : CWAbstractMegaphone {
 
 	// NOTE: simulated megaphone should run only after booting
 	// NOTE: need for separate synthdeflibs
+	// NOTE: stopped checking if synth nodes are playing
 
 	var <server, <buffer, bufDur, recSynth, playSynth;
 
-	*new {arg index, node, server, simulated = false;
-		^super.new(index, node).initCWSimulatedMegaphone(server); // will this copy?
+	*new {arg server;
+		^super.newCopyArgs(server).init; // will this copy?
 	}
 
-	initCWSimulatedMegaphone {arg argServer;
+	init {
 		inform("running simulated megaphone");
-		this.initAbstractMegaphone;
-		server = argServer;
+		super.init;
 		buffer = Buffer.alloc(server, Server.default.sampleRate * 10); // allocate a ten second buffer
 		this.initSynthDefs;
 	}
 
 	initSynthDefs {
-		// TODO: could check to see if these exist first before adding:
 		SynthDef(\megaphoneRecorder, {arg buffer, recAmp = 1;
 			var in;
 			in = In.ar(0);
@@ -360,117 +402,73 @@ CWSimulatedMegaphone : CWAbstractMegaphone {
 		}).add; // NOTE: need for separate synthdeflibs
 	}
 
-	record {
-		if (this.isRecording.not) {
-			var recAmp;
-			recAmp = (currentAngle - startingAngle).linlin(0, 2pi/2, 1, 0.2); // recording volume determined by position
-			recSynth = Synth(\megaphoneRecorder, [\buffer, buffer, \recAmp, recAmp], target: server, addAction: \addToTail);
-			recStartTime = Main.elapsedTime;
-			// add to tail to ensure we record after playback (order of operations)
-			NodeWatcher.register(recSynth); // clash?
-		}
-		{
-			warn("megaphone already recording")
-		}
+	doStartRecording {
+		var recAmp;
+		recAmp = (currentAngle - startingAngle).linlin(0, 2pi/2, 1, 0.2); // recording volume determined by position
+		recSynth = Synth(\megaphoneRecorder, [\buffer, buffer, \recAmp, recAmp], target: server, addAction: \addToTail);
+		recStartTime = Main.elapsedTime;
 	}
 
-	stopRecording {
-		if (this.isRecording) {
-			bufDur = Main.elapsedTime - recStartTime;
-			recSynth.free;
-		} {
-			warn("megaphone recording already stopped")
-		};
+	doStopRecording {
+		bufDur = Main.elapsedTime - recStartTime;
+		recSynth.free;
 	}
 
-	play {arg amplitude;
-		if (this.isPlaying.not) {
-			playSynth = Synth(\megaphonePlayer, [\buffer, buffer, \amp, amplitude, \loopDur, bufDur]);
-			NodeWatcher.register(playSynth); // clash?
-		}
-		{
-			warn("megaphone already playing")
-		}
+	doStartPlaying {arg initialVolume;
+		playSynth = Synth(\megaphonePlayer, [\buffer, buffer, \amp, initialVolume, \loopDur, bufDur]);
 	}
 
-	stopPlaying {
-		if (this.isPlaying) {
-			playSynth.free;
-		} {
-			warn("megaphone not playing")
-		};
+	doStopPlaying {
+		playSynth.free;
 	}
 
-	setPlayVolume {arg amp;
-		this.isPlaying.postln;
-		if (this.isPlaying) {
-			playSynth.set(\amp, amp);
-		} {
-			warn("megaphone not playing")
-		};
+	doSetPlayVolume {arg volume;
+		playSynth.set(\amp, volume);
 	}
 
-	setPosition {
-		// position isn't reflected in simulated megaphone (only in GUI)
-	}
-
-	isRecording {
-		// track synth, or simply set separate flags?
-		if (recSynth.isNil) { ^false } { ^recSynth.isPlaying };
-	}
-
-	isPlaying {
-		// track synth, or simply set separate flags?
-		if (playSynth.isNil) { ^false } { ^playSynth.isPlaying };
-	}
-
+	// doSetPosition {
+	// 	// position isn't reflected in simulated megaphone (only in GUI)
+	// }
 
 }
 
 CWRealMegaphone : CWAbstractMegaphone {
 
-	var pythonAddr, isPlaying, isRecording;
+	var pythonAddr;
 
 	*new {
-		^super.new.initCWRealMegaphone; // will this copy?
+		^super.new.init; // will this copy?
 	}
 
-	initCWRealMegaphone {
+	init {
 		inform("running real megaphone");
-		isPlaying = false;
-		isRecording = false;
-		this.initAbstractMegaphone;
+		super.init;
 		pythonAddr = NetAddr("127.0.0.1", 10000);
 	}
 
-	record {
-		isRecording = true;
-		// should turn to false after
-		// is there a way to get feedback about when recording stops?
+	doStartRecording {
 		pythonAddr.sendMsg('/megaphone/record', 1); // HIGH
 	}
 
-	stopRecording {
-		isRecording = false;
+	doStopRecording {
 		pythonAddr.sendMsg('/megaphone/record', 0); // LOW
 	}
 
-	play {
-		isPlaying = true;
+	doStartPlaying {arg initialVolume;
+		this.doSetPlayVolume(initialVolume);
 		pythonAddr.sendMsg('/megaphone/play', 1); // HIGH
 	}
 
-	stopPlaying {
-		isPlaying = false;
+	doStopPlaying {
 		pythonAddr.sendMsg('/megaphone/play', 0); // LOW
 	}
 
-	setPlayVolume {arg amp;
+	doSetPlayVolume {arg volume;
 		// should we be able to set play volume even when not playing?
-		pythonAddr.sendMsg('/megaphone/volume', amp);
+		pythonAddr.sendMsg('/megaphone/volume', volume);
 	}
 
-	setPosition {arg targetAngle;
+	doSetPosition {arg targetAngle;
 		pythonAddr.sendMsg('/megaphone/position', targetAngle); // HIGH
 	}
 
@@ -480,20 +478,18 @@ CWAbstractMegaphone {
 
 	// TODO: recording volume should be set constantly, as can record whilst the megaphone is moving
 
-	var startingAngle, <currentAngle = 0, turnSpeed, turner, <isTurning = false;
+	var startingAngle, <currentAngle = 0, turnSpeed, turner, isPlaying = false, isRecording = false, <isTurning = false;
 	var recStartTime;
 
 	// angle 0 = facing out
 	// angle pi = facing in
 
-	initAbstractMegaphone {
+	init {
 		var angleSegment;
-		\initAbstractMegaphone.postln;
 		angleSegment = 2pi/(5.rand + 1); // temp for now
 		startingAngle = angleSegment;
 		currentAngle = startingAngle;
 		turnSpeed = 2pi / 100;
-		[startingAngle, currentAngle].postln;
 	}
 
 	faceOut {
@@ -549,9 +545,52 @@ CWAbstractMegaphone {
 		c.hang;
 	}
 
-	// need equivalent real megaphone classes for these:
-/*	isInUse {
-		^(this.isRecording || this.isPlaying || isTurning );
-	}*/
+	startRecording {
+		if (isRecording.not) {
+			isRecording = true;
+			// should turn to false after set amount of time
+			// is there a way to get feedback about when recording stops?
+			this.doStartRecording;
+		}
+		{
+			warn("megaphone already recording")
+		}
+	}
+
+	stopRecording {
+		if (isRecording) {
+			isRecording = false;
+			this.doStopRecording;
+		} {
+			warn("megaphone recording already stopped")
+		};
+	}
+
+	startPlaying {arg initialVolume;
+		if (isPlaying.not) {
+			isPlaying = true;
+			this.doStartPlaying(initialVolume);
+		}
+		{
+			warn("megaphone already playing")
+		}
+	}
+
+	stopPlaying {
+		if (isPlaying) {
+			isPlaying = false;
+			this.doStopPlaying;
+		} {
+			warn("megaphone not playing")
+		};
+	}
+
+	setPlayVolume {arg volume;
+		if (isPlaying) {
+			this.setPlayVolume(volume);
+		} {
+			warn("megaphone not playing")
+		};
+	}
 
 }

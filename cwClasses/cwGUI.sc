@@ -21,9 +21,9 @@ CWLaptop {
 		// name the laptop (for ease of recongition in the addrBook)
 		utopian.node.register('laptop' ++ index);
 		// add megaphones:
-		remoteMegaphones = 5.collect{arg index;
+/*		remoteMegaphones = 5.collect{arg index;
 			CWSharedRemoteMegaphone(index, utopian.node);
-		};
+		};*/
 		// add sound sources:
 		remoteSoundSources = 2.collect{arg index;
 			CWSharedRemoteSoundSource(index, utopian.node);

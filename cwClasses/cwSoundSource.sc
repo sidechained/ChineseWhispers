@@ -121,11 +121,16 @@ CWRemoteSoundSource {
 		dataspace.put(\setVolume, volume);
 	}
 
-	// check
+	// check state of local megaphone
 
 	isOnline {
 		^node.addrBook.atName(name) !? { node.addrBook.atName(name).online } ?? { false }
 	}
+
+	isPlaying {
+		^dataspace.at(\isPlaying);
+	}
+
 
 }
 
