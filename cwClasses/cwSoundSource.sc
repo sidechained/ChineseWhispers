@@ -92,7 +92,7 @@ CWRemoteSoundSource {
 	// wrapper class which exposes functionality of a sound source to remote peers on the network
 	// this will run on each laptop
 
-	var index, <node, <dataspace;
+	var index, <node, name, <dataspace;
 
 	*new {arg index, node;
 		^super.newCopyArgs(index, node).initRemoteSoundSource;
@@ -101,7 +101,8 @@ CWRemoteSoundSource {
 	initRemoteSoundSource {
 		// do only once this node is online
 		var oscPath;
-		oscPath = '/soundSource' ++ index;
+		name = ('soundSource' ++ index).asSymbol;
+		oscPath = '/' ++ name;
 		dataspace = OSCDataSpace(node.addrBook, node.me, oscPath: oscPath);
 	}
 
@@ -120,13 +121,19 @@ CWRemoteSoundSource {
 		dataspace.put(\setVolume, volume);
 	}
 
+	// check
+
+	isOnline {
+		^node.addrBook.atName(name) !? { node.addrBook.atName(name).online } ?? { false }
+	}
+
 }
 
 CWLocalSoundSource : CWSoundSource {
 
 	// this will run on the beagleboard
 
-	var <utopian, name, <dataspace;
+	var <utopian, <name, <dataspace;
 
 	*new {arg index, pathToSoundFiles;
 		^super.new(index, pathToSoundFiles).init;
@@ -146,7 +153,9 @@ CWLocalSoundSource : CWSoundSource {
 	}
 
 	doWhenMeAdded {
-		name = 'soundSource' ++ index;
+		name = ('soundSource' ++ index).asSymbol;
+		name.postln;
+		name.class.postln;
 		// inform("registering with name: " ++ name);
 		utopian.node.register(name);
 		this.initDataSpace;

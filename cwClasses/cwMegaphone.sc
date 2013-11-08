@@ -175,7 +175,7 @@ CWRemoteMegaphone {
 
 	// actuation
 
-	var index, <node, <dataspace;
+	var index, <node, name, <dataspace;
 
 	*new {arg index, node;
 		^super.newCopyArgs(index, node).initRemoteMegaphone;
@@ -184,7 +184,8 @@ CWRemoteMegaphone {
 	initRemoteMegaphone {
 		// do only once this node is online
 		var oscPath;
-		oscPath = '/megaphone' ++ index;
+		name = ('megaphone' ++ index).asSymbol;
+		oscPath = '/' ++ name;
 		dataspace = OSCDataSpace(node.addrBook, node.me, oscPath: oscPath);
 	}
 
@@ -212,6 +213,12 @@ CWRemoteMegaphone {
 		dataspace.put(\setPlayVolume, volume);
 	}
 
+	//
+
+	isOnline {
+		^node.addrBook.atName(name) !? { node.addrBook.atName(name).online } ?? { false }
+	}
+
 }
 
 CWLocalMegaphone {
@@ -219,7 +226,7 @@ CWLocalMegaphone {
 	// a networked megaphone
 	// this will run on the beagleboard
 
-	var index, simulated, megaphone, <utopian, name, <dataspace;
+	var index, simulated, megaphone, <utopian, <name, <dataspace;
 
 	*new {arg index, simulated = false;
 		^super.newCopyArgs(index, simulated).init;
@@ -252,7 +259,7 @@ CWLocalMegaphone {
 	}
 
 	doWhenMeAdded {
-		name = 'megaphone' ++ index;
+		name = ('megaphone' ++ index).asSymbol;
 		// inform("registering with name: " ++ name);
 		utopian.node.register(name);
 		this.initDataSpace;
@@ -260,7 +267,7 @@ CWLocalMegaphone {
 
 	initDataSpace{
 		var oscPath;
-		oscPath = '/megaphone' ++ index;
+		oscPath = '/' ++ name;
 		inform("initialising data space for: " ++ oscPath);
 		dataspace = OSCDataSpace(utopian.node.addrBook, utopian.node.me, oscPath);
 		dataspace.addDependant({arg dataspace, val, key, value;
@@ -304,6 +311,12 @@ CWLocalMegaphone {
 			[\setPlayVolume, value].postln;
 			megaphone.setPlayVolume(value);
 		}
+	}
+
+	//
+
+	isPlaying {
+
 	}
 
 }
@@ -389,8 +402,6 @@ CWSimulatedMegaphone : CWAbstractMegaphone {
 	}
 
 	setPlayVolume {arg amp;
-		\tttt.postln;
-		this.postln;
 		this.isPlaying.postln;
 		if (this.isPlaying) {
 			playSynth.set(\amp, amp);
@@ -399,48 +410,26 @@ CWSimulatedMegaphone : CWAbstractMegaphone {
 		};
 	}
 
-	setPosition {arg targetAngle;
-		var direction, condition;
-		if (targetAngle > currentAngle) { // what if they are equal?
-			direction = 1; // go forwards
-			condition = { targetAngle < currentAngle };
-		} {
-			direction = -1; // go backwards
-			condition = { targetAngle > currentAngle };
-		};
-		if (turner.notNil) { if (isTurning) {turner.stop}; };
-		turner = Routine({
-			isTurning = true;
-			inf.do{
-				currentAngle = currentAngle + (turnSpeed * direction);
-				if (condition.value) {
-					isTurning = false;
-					currentAngle = targetAngle;
-					turner.stop;
-				};
-				0.05.wait;
-			};
-		}).play;
-	}
-
-	// need equivalent real megaphone classes for these:
-	isInUse {
-		^(this.isRecording || this.isPlaying || isTurning );
+	setPosition {
+		// position isn't reflected in simulated megaphone (only in GUI)
 	}
 
 	isRecording {
+		// track synth, or simply set separate flags?
 		if (recSynth.isNil) { ^false } { ^recSynth.isPlaying };
 	}
 
 	isPlaying {
+		// track synth, or simply set separate flags?
 		if (playSynth.isNil) { ^false } { ^playSynth.isPlaying };
 	}
+
 
 }
 
 CWRealMegaphone : CWAbstractMegaphone {
 
-	var pythonAddr;
+	var pythonAddr, isPlaying, isRecording;
 
 	*new {
 		^super.new.initCWRealMegaphone; // will this copy?
@@ -448,27 +437,36 @@ CWRealMegaphone : CWAbstractMegaphone {
 
 	initCWRealMegaphone {
 		inform("running real megaphone");
+		isPlaying = false;
+		isRecording = false;
 		this.initAbstractMegaphone;
 		pythonAddr = NetAddr("127.0.0.1", 10000);
 	}
 
 	record {
+		isRecording = true;
+		// should turn to false after
+		// is there a way to get feedback about when recording stops?
 		pythonAddr.sendMsg('/megaphone/record', 1); // HIGH
 	}
 
 	stopRecording {
+		isRecording = false;
 		pythonAddr.sendMsg('/megaphone/record', 0); // LOW
 	}
 
 	play {
+		isPlaying = true;
 		pythonAddr.sendMsg('/megaphone/play', 1); // HIGH
 	}
 
 	stopPlaying {
+		isPlaying = false;
 		pythonAddr.sendMsg('/megaphone/play', 0); // LOW
 	}
 
 	setPlayVolume {arg amp;
+		// should we be able to set play volume even when not playing?
 		pythonAddr.sendMsg('/megaphone/volume', amp);
 	}
 
@@ -498,36 +496,42 @@ CWAbstractMegaphone {
 		[startingAngle, currentAngle].postln;
 	}
 
-	/*	record {
-	// superclass
-	}
-
-	stopRecording {
-	// superclass
-	}
-
-	play {arg amplitude;
-	// superclass
-	}
-
-	stopPlaying {
-	// superclass
-	}
-
-	setPlayVolume {arg amp;
-	this.setPlayVolume(amp);
-	}*/
-
 	faceOut {
-		this.setPosition(startingAngle);
+		this.calcPosition(startingAngle);
 	}
 
 	faceIn {
-		this.setPosition(startingAngle + (2pi/2));
+		this.calcPosition(startingAngle + (2pi/2));
 	}
 
 	faceNext {
-		this.setPosition(startingAngle + (2pi * 0.25));
+		this.calcPosition(startingAngle + (2pi * 0.25));
+	}
+
+	calcPosition {arg targetAngle;
+		var direction, condition;
+		if (targetAngle > currentAngle) { // what if they are equal?
+			direction = 1; // go forwards
+			condition = { targetAngle < currentAngle };
+		} {
+			direction = -1; // go backwards
+			condition = { targetAngle > currentAngle };
+		};
+		if (turner.notNil) { if (isTurning) {turner.stop}; };
+		turner = Routine({
+			isTurning = true;
+			inf.do{
+				currentAngle = currentAngle + (turnSpeed * direction);
+				this.setPosition(currentAngle);
+				if (condition.value) {
+					isTurning = false;
+					currentAngle = targetAngle;
+					this.setPosition(currentAngle);
+					turner.stop;
+				};
+				0.05.wait;
+			};
+		}).play;
 	}
 
 	waitUntilTurned {
@@ -544,5 +548,10 @@ CWAbstractMegaphone {
 		};
 		c.hang;
 	}
+
+	// need equivalent real megaphone classes for these:
+/*	isInUse {
+		^(this.isRecording || this.isPlaying || isTurning );
+	}*/
 
 }

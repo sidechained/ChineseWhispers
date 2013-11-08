@@ -25,6 +25,7 @@ To Do List:
 
 // revisit GUI classes
 
+- TODO: 'isPlaying' should be implemented at the AbstractMegaphone level, but how to implement it on the real megaphone?
 - TODO: shouldn't be able to relinquish control if a sound is playing
 - TODO: fix fact that when joining, peers come online twice (causes two servers to be booted)
 - TODO: apply changes to Registrar/Registrant that were applied to DecentralisedNode
