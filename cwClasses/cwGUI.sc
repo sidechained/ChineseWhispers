@@ -21,14 +21,13 @@ CWLaptop {
 		// name the laptop (for ease of recongition in the addrBook)
 		utopian.node.register('laptop' ++ index);
 		// add megaphones:
-/*		remoteMegaphones = 5.collect{arg index;
+		remoteMegaphones = 5.collect{arg index;
 			CWSharedRemoteMegaphone(index, utopian.node);
-		};*/
+		};
 		// add sound sources:
 		remoteSoundSources = 2.collect{arg index;
 			CWSharedRemoteSoundSource(index, utopian.node);
 		};
-		remoteSoundSources.postln;
 		gui = CWGUI(remoteMegaphones, remoteSoundSources);
 	}
 
@@ -61,9 +60,8 @@ CWGUI {
 		controlPaneSize = Size(400, 400);
 		soundSourceSize = displayPaneSize.width/10;
 		megaphoneSize = displayPaneSize.width/10;
-		megaphoneLength = megaphoneSize/5;
-		megaphoneMicSize = megaphoneSize/20;
-		megaphoneHornSize = megaphoneSize/10;
+		megaphoneMicSize = megaphoneSize/10;
+		megaphoneHornSize = megaphoneSize/5;
 
 		devicePositionDict = ( // between 0 and 1
 			soundSource0: 0.1,
@@ -105,7 +103,7 @@ CWGUI {
 				isOnline = remoteMegaphone.isOnline;
 				isRecording = remoteMegaphone.isRecording;
 				isPlaying = remoteMegaphone.isPlaying;
-				//currentAngle = remoteMegaphone.currentAngle;
+				currentAngle = 2pi*0.2; // remoteMegaphone.currentAngle
 				//isTurning?
 				this.drawMegaphone(xPos, isOnline, isRecording, isPlaying, currentAngle);
 			};
@@ -119,15 +117,15 @@ CWGUI {
 				this.drawSoundSource(xPos, isOnline, isPlaying);
 			};
 		});
+		deviceDisplayPane.background_(Color.magenta(alpha:0.1));
 		deviceDisplayPane.animate_(true);
 		^deviceDisplayPane;
 	}
 
 	drawMegaphone {arg xPos, isOnline, isRecording, isPlaying, currentAngle; // isTurning?
 		Pen.use{
-			var mag, ang, start, end, color;
-			mag = megaphoneLength/0.9;
-			ang = 0;
+			var start, end, color;
+			// mag = 5;
 			color = if (isOnline) {
 				if (isPlaying) { playColor } {
 					// if not playing, check if recording
@@ -139,67 +137,70 @@ CWGUI {
 					offlineColor
 				};
 			};
-			Pen.translate(xPos, 40);
+			this.drawCentreBlob(xPos, 40, color);
 			// draw centre blob (mic stand)
+			this.drawBody(xPos, 40, currentAngle);
+			this.drawHorn(xPos, 40, currentAngle);
+			this.drawMic(xPos, 40, currentAngle);
+		}
+	}
+
+	drawCentreBlob {arg x, y, color;
+		var blobSize = 4;
+		Pen.use{
+			Pen.translate(x, y);
 			Pen.fillColor_(color);
-			Pen.fillOval(Rect(-2, -2, 4, 4));
-			/*			this.drawup;
-			this.drawHorn;
-			// work out end:
-			end = Polar(megaphoneLength, megaphone.currentAngle + ((2pi/2)%2pi)).asComplex.asPoint;
-			this.drawEnd {
-			}*/
-		};
+			Pen.fillOval(Rect(blobSize/2 * -1, blobSize/2 * -1, blobSize, blobSize));
+		}
 	}
 
-/*	drawup {
+	drawBody {arg x, y, currentAngle;
 		Pen.use {
 			var up, down;
-			up = Polar(megaphoneSize, (ang - (2pi/2))%2pi).asComplex.asPoint;
+			currentAngle = currentAngle;
+			Pen.translate(x, y);
+			up = Polar(megaphoneSize/2, (currentAngle - (2pi/2))%2pi).asComplex.asPoint;
 			Pen.translate(up.x, up.y);
-			down = Polar(megaphoneSize * 2, ang).asComplex.asPoint;
-			Pen.line(down); Pen.strokeColor_(Color.grey(alpha: 0.3)); Pen.stroke;
+			down = Polar(megaphoneSize, currentAngle).asComplex.asPoint;
+			Pen.line(down);
+			Pen.strokeColor_(Color.grey(alpha: 0.3));
+			Pen.stroke;
 		};
 	}
 
-	drawHorn {
+	drawHorn {arg x, y, currentAngle;
 		// translate to start:
-		start = Polar(megaphoneLength/2, megaphone.currentAngle).asComplex.asPoint;
-		Pen.translate(start.x, start.y);
 		Pen.use {
-			var up, down;
-			up = Polar(megaphoneHornSize/2, megaphone.currentAngle + ((2pi/4)%2pi)).asComplex.asPoint;
+			var start, up, down;
+			Pen.translate(x, y);
+			start = Polar(megaphoneSize / 2, currentAngle).asComplex.asPoint;
+			Pen.translate(start.x, start.y);
+			up = Polar(megaphoneHornSize / 2, currentAngle + ((2pi/4)%2pi)).asComplex.asPoint;
 			Pen.translate(up.x, up.y);
-			down = Polar(megaphoneHornSize, megaphone.currentAngle - ((2pi/4)%2pi)).asComplex.asPoint;
+			down = Polar(megaphoneHornSize, currentAngle - ((2pi/4)%2pi)).asComplex.asPoint;
+			Pen.line(down);
+			Pen.strokeColor_(Color.grey(alpha: 0.3));
+			Pen.stroke;
+		};
+	}
+
+	drawMic {arg x, y, currentAngle;
+		Pen.use {
+			var end, up, down;
+			Pen.translate(x, y);
+			// translate to end:
+			end = Polar(megaphoneSize / 2, currentAngle + ((2pi/2)%2pi)).asComplex.asPoint;
+			Pen.translate(end.x, end.y);
+			// translate along 90 degrees (up)
+			up = Polar(megaphoneMicSize / 2, currentAngle + ((2pi/4)%2pi)).asComplex.asPoint;
+			Pen.translate(up.x, up.y);
+			// work out down and draw line to it
+			down = Polar(megaphoneMicSize, currentAngle - ((2pi/4)%2pi)).asComplex.asPoint;
 			Pen.line(down);
 			Pen.strokeColor_(Color.blue);
 			Pen.stroke;
 		};
 	}
-
-	drawToEnd {
-		// draw line from current position to end:
-		Pen.line(end);
-		Pen.strokeColor_(Color.black);
-		Pen.stroke;
-	}
-
-	drawEnd {
-		// translate to end:
-		Pen.translate(end.x, end.y);
-		Pen.use {
-			var up, down;
-			up = Polar(megaphoneMicSize/2, megaphone.currentAngle + ((2pi/4)%2pi)).asComplex.asPoint;
-			// translate along 90 degrees
-			Pen.translate(up.x, up.y);
-			// work out down
-			down = Polar(megaphoneMicSize, megaphone.currentAngle - ((2pi/4)%2pi)).asComplex.asPoint;
-			// red if recording, green if playing, black if neither
-			Pen.line(down);
-			Pen.strokeColor_(Color.blue);
-			Pen.stroke;
-		};
-	}*/
 
 	drawSoundSource {arg xPos, isOnline, isPlaying;
 		var position, fillColor;

@@ -90,7 +90,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		if (sharedControlSpace.at(\positionControlledBy) == node.me.id) {
 			^super.setPosition(position);
 		} {
-			warn("you are not in control of this megaphone");
+			warn("you are not in control of this parameter");
 		};
 	}
 
@@ -98,7 +98,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		if (sharedControlSpace.at(\recordingControlledBy) == node.me.id) {
 			^super.startRecording;
 		} {
-			warn("you are not in control of this megaphone");
+			warn("you are not in control of this parameter");
 		};
 	}
 
@@ -106,7 +106,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		if (sharedControlSpace.at(\recordingControlledBy) == node.me.id) {
 			^super.stopRecording;
 		} {
-			warn("you are not in control of this megaphone");
+			warn("you are not in control of this parameter");
 		};
 	}
 
@@ -114,7 +114,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
 			^super.startPlaying(initialVolume);
 		} {
-			warn("you are not in control of this megaphone");
+			warn("you are not in control of this parameter");
 		}
 	}
 
@@ -122,7 +122,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
 			^super.stopPlaying;
 		} {
-			warn("you are not in control of this megaphone");
+			warn("you are not in control of this parameter");
 		}
 	}
 
@@ -130,7 +130,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		if (sharedControlSpace.at(\playVolumeControlledBy) == node.me.id) {
 			^super.setPlayVolume(volume);
 		} {
-			warn("you are not in control of this megaphone");
+			warn("you are not in control of this parameter");
 		};
 	}
 
@@ -179,6 +179,10 @@ CWRemoteMegaphone {
 	}
 
 	//
+
+	currentAngle {
+		^dataspace.at(\currentAngle) ?? { 0 };
+	}
 
 	isOnline {
 		^node.addrBook.atName(name) !? { node.addrBook.atName(name).online } ?? { false }
@@ -341,6 +345,10 @@ CWLocalMegaphone {
 		megaphone.doSetPlayVolume(volume);
 	}
 
+/*	setCurrentAngle {arg currentAngle;
+		dataspace.put(\currentAngle, currentAngle)
+	}*/
+
 }
 
 CWSimulatedMegaphone : CWAbstractMegaphone {
@@ -496,17 +504,19 @@ CWAbstractMegaphone {
 		turner = Routine({
 			isTurning = true;
 			inf.do{
-				currentAngle = currentAngle + (turnSpeed * direction);
-				this.setPosition(currentAngle);
+				this.setCurrentAngle(currentAngle + (turnSpeed * direction));
 				if (condition.value) {
 					isTurning = false;
-					currentAngle = targetAngle;
-					this.setPosition(currentAngle);
+					this.setCurrentAngle(targetAngle);
 					turner.stop;
 				};
 				0.05.wait;
 			};
 		}).play;
+	}
+
+	setCurrentAngle {arg angle;
+		currentAngle = angle;
 	}
 
 	waitUntilTurned {
