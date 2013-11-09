@@ -1,35 +1,3 @@
-// two approaches...
-
-// 1. dataspace approach (trying this first)
-// - each megaphone has a dataspace
-// - the dataspace contains takeControl and control data
-// - to takeControl or control, put a key in the dataspace
-// - a dataspace dependency checks for keys and updates Megaphone instance variable accordingly
-
-// 2. objectspace approach
-// - one objectspace that contains all megaphones would seem to make sense
-// - but this would seem to suit higher level container, not one objectspace per megaphone, not ideal
-// - each time any parameters of the megaphone change, we add it (this) to the objectspace
-// - on the dependency side, when a new object is received, it overwrites the existing one in the megaphone array
-// - the trouble with this is the local updates would be done before the remote ones: any way to avoid this? maybe the megaphone is duplicated, modified, put in the space, and only is updated locally when it comes out as a dependency...hmmm
-
-//		if (server.serverRunning) {
-//			this.doWhenServerRunning;
-//		}
-//		{
-//			fork {
-//				inform("booting server");
-//				server.boot;
-//				server.bootSync;
-//				this.doWhenServerRunning;
-//			};
-//		};
-
-/*		if (server.serverRunning) {
-buffer = Buffer.alloc(server, server.sampleRate * 10); // allocate a ten second buffer
-} {
-warn("server not running, cannot create megaphone buffer");
-};*/
 
 CWSharedRemoteMegaphone : CWRemoteMegaphone {
 

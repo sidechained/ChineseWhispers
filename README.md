@@ -1,6 +1,5 @@
 * Chinese Whispers
 
-- 
 - simulation and actual classes
 - an exploration/simulation of megaphone rotation and recording/playback from a central 'sound player'
 - three classes at the moment: Megaphone, SoundPlayer, and MegaGUI
@@ -127,3 +126,21 @@ Spacing Decisions
 - 4. servo possible angle of rotation
 - the megaphone length is the defining factor for everything, as the other two can be varied
 
+*
+
+Notes
+
+// two approaches...
+
+// 1. dataspace approach (trying this first)
+// - each megaphone has a dataspace
+// - the dataspace contains takeControl and control data
+// - to takeControl or control, put a key in the dataspace
+// - a dataspace dependency checks for keys and updates Megaphone instance variable accordingly
+
+// 2. objectspace approach
+// - one objectspace that contains all megaphones would seem to make sense
+// - but this would seem to suit higher level container, not one objectspace per megaphone, not ideal
+// - each time any parameters of the megaphone change, we add it (this) to the objectspace
+// - on the dependency side, when a new object is received, it overwrites the existing one in the megaphone array
+// - the trouble with this is the local updates would be done before the remote ones: any way to avoid this? maybe the megaphone is duplicated, modified, put in the space, and only is updated locally when it comes out as a dependency...hmmm
