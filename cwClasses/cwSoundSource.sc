@@ -1,8 +1,7 @@
 CWSharedRemoteSoundSource : CWRemoteSoundSource {
 
-	// this will manage shared control of the resource
-
-	// dataspace is the laptop dataspace
+	// this class manages shared control of the sound source
+	// the sharedControlSpace exists only on laptops
 	// control functions:
 
 	var <sharedControlSpace;
@@ -18,6 +17,7 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 	// shared control:
 
 	takeControl {
+		// no checks here, can always grab control
 		this.takeControlOfPlayback(());
 		this.takeControlOfVolume(());
 		sharedControlSpace.put(\controlledBy, node.me.id);
@@ -35,15 +35,16 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 	}
 
 	takeControlOfPlayback {
+		// no checks here, can always grab control
 		sharedControlSpace.put(\playbackControlledBy, node.me.id);
 	}
 
 	takeControlOfVolume {
+		// no checks here, can always grab control
 		sharedControlSpace.put(\volumeControlledBy, node.me.id);
 	}
 
 	relinquishControlOfPlayback {
-		// TODO only if sound not playing
 		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
 			sharedControlSpace.put(\playbackControlledBy, \reset);
 		} {
@@ -51,9 +52,9 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 		};
 	}
 
-	relinquishControlOfVolume {
-		if (sharedControlSpace.at(\volumeControlledBy) == node.me.id) {
-			sharedControlSpace.put(\volumeControlledBy, \reset);
+	relinquishControlOfPlayVolume {
+		if (sharedControlSpace.at(\playVolumeControlledBy) == node.me.id) {
+			sharedControlSpace.put(\playVolumeControlledBy, \reset);
 		} {
 			warn("you are not in control of this parameter");
 		};
@@ -61,25 +62,25 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 
 	// shared actuation:
 
-	play {arg bufferNumber, volume;
+	startPlaying {arg bufferNumber, initialVolume;
 		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
-			^super.play(bufferNumber, volume);
+			^super.startPlaying(bufferNumber, initialVolume);
 		} {
 			warn("you are not in control of this parameter");
 		};
 	}
 
-	stop {
-		if (sharedControlSpace.at(\playbackControlledBy)  == node.me.id) {
-			^super.stop;
+	stopPlaying {
+		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
+			^super.stopPlaying;
 		} {
 			warn("you are not in control of this parameter");
 		};
 	}
 
-	setVolume {arg volume;
-		if (sharedControlSpace.at(\volumeControlledBy) == node.me.id) {
-			^super.setVolume(volume);
+	setPlayVolume {arg volume;
+		if (sharedControlSpace.at(\playVolumeControlledBy) == node.me.id) {
+			^super.setPlayVolume(volume);
 		} {
 			warn("you are not in control of this parameter");
 		};

@@ -1,4 +1,3 @@
-
 CWSharedRemoteMegaphone : CWRemoteMegaphone {
 
 	var <sharedControlSpace;
@@ -8,7 +7,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 	}
 
 	initSharedRemoteMegaphone {
-		sharedControlSpace = OSCDataSpace(node.addrBook, node.me, oscPath: '/sharedControlSpace'); // TODO: needs to be per megaphone
+		sharedControlSpace = OSCDataSpace(node.addrBook, node.me, oscPath: '/sharedControlSpace');
 	}
 
 	// shared control:
@@ -26,7 +25,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 			this.relinquishControlOfPosition(());
 			this.relinquishControlOfRecording(());
 			this.relinquishControlOfPlayback(());
-			this.relinquishControlOfVolume(());
+			this.relinquishControlOfPlayVolume(());
 			dataspace.put(\controlledBy, \reset); // cannot use nil as it gets converted to a 0 over network
 		} {
 			warn("you are not in control of this sound source");
@@ -69,7 +68,6 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 	}
 
 	relinquishControlOfPlayback {
-		// TODO only if sound not playing
 		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
 			sharedControlSpace.put(\playbackControlledBy, \reset);
 		}
@@ -78,7 +76,7 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		};
 	}
 
-	relinquishControlOfVolume {
+	relinquishControlOfPlayVolume {
 		if (sharedControlSpace.at(\playVolumeControlledBy) == node.me.id) {
 			sharedControlSpace.put(\playVolumeControlledBy, \reset);
 		} {
@@ -96,9 +94,9 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		};
 	}
 
-	record {
+	startRecording {
 		if (sharedControlSpace.at(\recordingControlledBy) == node.me.id) {
-			^super.record;
+			^super.startRecording;
 		} {
 			warn("you are not in control of this megaphone");
 		};
@@ -112,9 +110,9 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 		};
 	}
 
-	play {
+	startPlaying {arg initialVolume;
 		if (sharedControlSpace.at(\playbackControlledBy) == node.me.id) {
-			^super.play;
+			^super.startPlaying(initialVolume);
 		} {
 			warn("you are not in control of this megaphone");
 		}
@@ -274,6 +272,13 @@ CWLocalMegaphone {
 		}		*/
 
 		OSCFunc({arg msg;
+			var position;
+			# position = msg.drop(1);
+			[\setPosition].postln;
+			this.doSetPosition;
+		}, '\setPosition', recvPort: utopian.node.me.addr.port);
+
+		OSCFunc({arg msg;
 			[\startRecording].postln;
 			this.doStartRecording;
 		}, '\startRecording', recvPort: utopian.node.me.addr.port);
@@ -302,6 +307,12 @@ CWLocalMegaphone {
 			this.doSetPlayVolume(volume);
 		}, '\setPlayVolume', recvPort: utopian.node.me.addr.port);
 
+	}
+
+	doSetPosition {arg position;
+		\localMegaphonedoStartRecording.postln;
+		// TODO ? set isTurning here?
+		megaphone.doSetPosition(position);
 	}
 
 	doStartRecording {
@@ -394,9 +405,9 @@ CWSimulatedMegaphone : CWAbstractMegaphone {
 		playSynth.set(\amp, volume);
 	}
 
-	// doSetPosition {
-	// 	// position isn't reflected in simulated megaphone (only in GUI)
-	// }
+	doSetPosition {arg position;
+		inform("position isn't used by simulated megaphone %".format(position))
+	}
 
 }
 
