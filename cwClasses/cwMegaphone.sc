@@ -308,12 +308,12 @@ CWLocalMegaphone {
 		OSCFunc({arg msg;
 			[\startRecording].postln;
 			this.doStartRecording;
-		}, '\startRecording', recvPort: utopian.node.me.addr.port).postln;
+		}, '\startRecording', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
 			[\stopRecording].postln;
 			this.doStopRecording;
-		}, '\stopRecording', recvPort: utopian.node.me.addr.port).postln;
+		}, '\stopRecording', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
 			var initialVolume;
@@ -587,7 +587,7 @@ CWAbstractMegaphone {
 
 	setPlayVolume {arg volume;
 		if (isPlaying) {
-			this.setPlayVolume(volume);
+			this.doSetPlayVolume(volume);
 		} {
 			warn("megaphone not playing")
 		};

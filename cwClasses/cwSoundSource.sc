@@ -108,17 +108,16 @@ CWRemoteSoundSource {
 
 	// actuation:
 
-	play {arg bufferNumber, volume;
-		dataspace.put(\play, [bufferNumber, volume].asBinaryArchive);
-		// binary archiving is a workaround which make it possible send more than one value
+	startPlaying {arg bufferNumber, volume;
+		node.addrBook.sendName(name, \startPlaying, bufferNumber, volume);
 	}
 
-	stop {
-		dataspace.put(\stop);
+	stopPlaying {
+		node.addrBook.sendName(name, \stopPlaying);
 	}
 
-	setVolume {arg volume;
-		dataspace.put(\setVolume, volume);
+	setPlayVolume {arg volume;
+		node.addrBook.sendName(name, \setPlayVolume, volume);
 	}
 
 	// check state of local megaphone
@@ -128,9 +127,9 @@ CWRemoteSoundSource {
 	}
 
 	isPlaying {
-		^dataspace.at(\isPlaying);
+		// OSC converts booleans to 1's and 0's, so must convert back here
+		^dataspace.at(\isPlaying) !? {dataspace.at(\isPlaying).asBoolean} ?? { false };
 	}
-
 
 }
 
@@ -138,14 +137,15 @@ CWLocalSoundSource : CWSoundSource {
 
 	// this will run on the beagleboard
 
-	var <utopian, <name, <dataspace;
+	var index, <utopian, <name, <dataspace;
 
 	*new {arg index, pathToSoundFiles;
-		^super.new(index, pathToSoundFiles).init;
+		^super.new(pathToSoundFiles).init(index);
 	}
 
-	init {
-		// overrides CWSoundSource init
+	init {arg argIndex;
+		// overrides CWSoundSource init (which will be called below once server has booted)
+		index = argIndex;
 		utopian = NMLUtopian(
 			topology: \decentralised,
 			hasServer: true,
@@ -162,11 +162,12 @@ CWLocalSoundSource : CWSoundSource {
 		// inform("registering with name: " ++ name);
 		utopian.node.register(name);
 		this.initDataSpace;
+		this.initResponders;
 	}
 
 	doWhenBooted {
 		server = utopian.server;
-		super.doWhenBooted;
+		super.init;
 	}
 
 	initDataSpace{
@@ -174,47 +175,53 @@ CWLocalSoundSource : CWSoundSource {
 		oscPath = '/soundSource' ++ index;
 		inform("initialising data space for: " ++ oscPath);
 		dataspace = OSCDataSpace(utopian.node.addrBook, utopian.node.me, oscPath);
-		dataspace.addDependant({arg dataspace, val, key, value;
-			this.updateState(key, value);
-		});
 	}
 
-	updateState {arg key, value;
-		case
-		// sound functions:
-		{ key == \play } {
+	initResponders {
+
+		OSCFunc({arg msg;
 			var bufferNumber, initialVolume;
-			# bufferNumber, initialVolume = value.unarchive;
-			this.startPlaying(bufferNumber, initialVolume);
-		}
-		{ key == \stop } { this.stopPlaying }
-		{ key == \setVolume } { this.setVolume(value) }
+			# bufferNumber, initialVolume = msg.drop(1);
+			[\startPlaying].postln;
+			this.doStartPlaying(bufferNumber, initialVolume);
+		}, '\startPlaying', recvPort: utopian.node.me.addr.port);
+
+		OSCFunc({arg msg;
+			[\stopPlaying].postln;
+			this.doStopPlaying;
+		}, '\stopPlaying', recvPort: utopian.node.me.addr.port);
+
+		OSCFunc({arg msg;
+			var volume;
+			# volume = msg.drop(1);
+			[\setPlayVolume].postln;
+			this.doSetPlayVolume(volume);
+		}, '\setPlayVolume', recvPort: utopian.node.me.addr.port);
+
 	}
+
+	doStartPlaying {arg initialVolume;
+		dataspace.put(\isPlaying, true);
+		super.doStartPlaying(initialVolume);
+	}
+
+	doStopPlaying {
+		dataspace.put(\isPlaying, false);
+		super.doStopPlaying;
+	}
+
 
 }
 
 CWSoundSource {
 
-	var index, pathToSoundFiles, server, <buffers, playSynth, <amplitude;
+	var pathToSoundFiles, server, <buffers, playSynth, <amplitude, isPlaying = false;
 
-	*new {arg index, pathToSoundFiles ,server;
-		^super.newCopyArgs(index, pathToSoundFiles, server);
-		// .init;
+	*new {arg pathToSoundFiles, server;
+		^super.newCopyArgs(pathToSoundFiles, server).init;
 	}
 
-	// TODO: how to run this without messing with the init from CWLocalSoundSource
-
-	// init {
-	// 	\imhere.postln;
-	// 	// server ?? { server = Server.default }; // use default if none given
-	// 	fork {
-	// 		server.boot;
-	// 		server.bootSync;
-	// 		this.doWhenBooted;
-	// 	}
-	// }
-
-	doWhenBooted {
+	init {
 		this.initAmplitudeResponder;
 		this.initSynthDef;
 		this.readBuffers;
@@ -235,6 +242,7 @@ CWSoundSource {
 
 	initAmplitudeResponder {
 		OSCFunc({arg msg;
+			var amplitude;
 			# amplitude = msg.drop(3);
 		}, '/soundSourceAmplitude')
 	}
@@ -246,23 +254,46 @@ CWSoundSource {
 		};
 	}
 
-	isPlaying {
-		if (playSynth.isNil) { ^false } { ^playSynth.isPlaying };
-	}
+	// checks:
 
-	startPlaying {arg buffer, initialVolume = 1;
-		if (this.isPlaying) { this.stopPlaying; };
-		playSynth = Synth(\soundSourcePlayer, [\buffer, buffer, \amp, initialVolume], target: server);
-		NodeWatcher.register(playSynth);
+	startPlaying {arg bufferNumber, initialVolume;
+		if (isPlaying.not) {
+			isPlaying = true;
+			this.doStartPlaying(bufferNumber, initialVolume);
+		} {
+			warn("megaphone already playing")
+		}
 	}
 
 	stopPlaying {
-		if (this.isPlaying) { playSynth.free; } { warn("sound source not playing!") };
+		if (isPlaying) {
+			isPlaying = false;
+			this.doStopPlaying;
+		} {
+			warn("megaphone not playing")
+		};
 	}
 
-	setVolume {arg volume;
-		if (this.isPlaying) { playSynth.set(\amp, volume); } { warn("sound source not playing!") };
+	setPlayVolume {arg volume;
+		if (isPlaying) {
+			this.doSetPlayVolume(volume);
+		} {
+			warn("megaphone not playing")
+		};
+	}
+
+	// sound changing functions:
+
+	doStartPlaying {arg bufferNumber, initialVolume = 1;
+		playSynth = Synth(\soundSourcePlayer, [\buffer, bufferNumber, \amp, initialVolume], target: server);
+	}
+
+	doStopPlaying {
+		playSynth.free;
+	}
+
+	doSetPlayVolume {arg volume;
+		playSynth.set(\amp, volume);
 	}
 
 }
-
