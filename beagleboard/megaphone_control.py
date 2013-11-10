@@ -62,18 +62,14 @@ def init_server():
 	st.start()
 
 def init_device():
-    deviceSpec = [
-        'megaphone1',
-        ['position', 'PWM', 'P9_11' ],
-        ['play', 'GPIO', 'P9_12' ],
-        ['record', 'GPIO', 'P9_13' ],
-        ['volume', 'PWM', 'P9_14' ],
-        ['pitchUp', 'GPIO', 'P9_15' ], # check, should be GPIO?
-        ['pitchDown', 'GPIO', 'P9_16' ] # check, should be GPIO?
+    deviceOperations = [
+        ['play', 'GPIO', 'P9_27' ],
+        ['record', 'GPIO', 'P9_12' ],
+        ['playVolume', 'PWM', 'P9_14' ],
+        ['position', 'PWM', 'P9_16' ]
+    #   ['pitchUp', 'GPIO', 'P9_15' ],
+    #   ['pitchDown', 'GPIO', 'P9_16' ]
         ]
-    deviceName = deviceSpec[0]
-    print deviceName + " listening for..."
-    deviceOperations = deviceSpec[1:]
     for operation in deviceOperations:
         operationName = operation[0]
         pinMode = operation[1]

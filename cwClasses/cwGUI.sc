@@ -2,7 +2,7 @@ CWLaptop {
 
 	// one utopian, many remote objects (megaphones and sound sources)
 
-	var index, <utopian, <remoteMegaphones, <remoteSoundSources, <gui;
+	var index, <utopian, <remoteMegaphones, <remoteSoundSources, <remoteLaptops, <gui;
 	// index won't make sense in the end
 
 	*new {arg index;
@@ -28,26 +28,49 @@ CWLaptop {
 		remoteSoundSources = 2.collect{arg index;
 			CWSharedRemoteSoundSource(index, utopian.node);
 		};
-		gui = CWGUI(remoteMegaphones, remoteSoundSources);
+		// add laptops:
+		remoteLaptops = 2.collect{arg index;
+			CWRemoteLaptop(index, utopian.node);
+		};
+		gui = CWGUI(remoteMegaphones, remoteSoundSources, remoteLaptops);
 	}
 
+}
+
+CWRemoteLaptop {
+
+	var index, <node, <name, <dataspace;
+
+	*new {arg index, node;
+		^super.newCopyArgs(index, node).initRemoteLaptop;
+	}
+
+	initRemoteLaptop {
+		// do only once this node is online
+		var oscPath;
+		name = ('laptop' ++ index).asSymbol;
+	}
+
+	isOnline {
+		^node.addrBook.atName(name) !? { node.addrBook.atName(name).online } ?? { false }
+	}
 }
 
 CWGUI {
 	// draw the expected number of megaphones
 	// have a colour for online, color for offline
-	var remoteMegaphones, remoteSoundSources;
+	var remoteMegaphones, remoteSoundSources, remoteLaptops;
 	var <node;
 	var devicePositionDict;
 	var onlineColor, offlineColor, playColor, recColor, stopColor;
 	var displayPaneSize, controlPaneSize;
-	var soundSourceSize, megaphoneSize, megaphoneLength, megaphoneMicSize, megaphoneHornSize;
+	var soundSourceSize, megaphoneSize, megaphoneLength, megaphoneMicSize, megaphoneHornSize, laptopSize;
 	var megaphoneParamFuncArray, <megaphoneParamButtonDict;
 	var soundSourceParamFuncArray, <soundSourceParamButtonDict;
 	var defaultBackgroundColor;
 
-	*new {arg remoteMegaphones, remoteSoundSources;
-		^super.newCopyArgs(remoteMegaphones, remoteSoundSources).init;
+	*new {arg remoteMegaphones, remoteSoundSources, remoteLaptops;
+		^super.newCopyArgs(remoteMegaphones, remoteSoundSources, remoteLaptops).init;
 	}
 
 	init {
@@ -61,16 +84,18 @@ CWGUI {
 		soundSourceSize = displayPaneSize.width/10;
 		megaphoneSize = displayPaneSize.width/10;
 		megaphoneMicSize = megaphoneSize/10;
-		megaphoneHornSize = megaphoneSize/5;
-
+		megaphoneHornSize = megaphoneSize/2.5;
+		laptopSize = displayPaneSize.width/10;
 		devicePositionDict = ( // between 0 and 1
-			soundSource0: 0.1,
-			megaphone0: 0.23333333333333,
-			megaphone1: 0.36666666666667,
-			megaphone2: 0.5,
-			megaphone3: 0.63333333333333,
-			megaphone4: 0.76666666666667,
-			soundSource1: 0.9
+			soundSource0: 0.1@0.2,
+			megaphone0: 0.23333333333333@0.2,
+			megaphone1: 0.36666666666667@0.2,
+			megaphone2: 0.5@0.2,
+			megaphone3: 0.63333333333333@0.2,
+			megaphone4: 0.76666666666667@0.2,
+			soundSource1: 0.9@0.2,
+			laptop0: 0.25@0.8,
+			laptop1: 0.75@0.8
 		);
 		defer { this.makeGUI };
 	}
@@ -98,31 +123,41 @@ CWGUI {
 			// Pen.translate(size/2, deviceDisplayPane.bounds.height/2);
 			// 1. draw megaphones:
 			remoteMegaphones.do{arg remoteMegaphone;
-				var xPos, isOnline, isPlaying, isRecording, currentAngle;
-				xPos = devicePositionDict.at(remoteMegaphone.name).linlin(0, 1, 0, deviceDisplayPane.bounds.width);
+				var xPos, yPos, isOnline, isPlaying, isRecording, currentAngle;
+				xPos = devicePositionDict.at(remoteMegaphone.name).x.linlin(0, 1, 0, deviceDisplayPane.bounds.width);
+				yPos = devicePositionDict.at(remoteMegaphone.name).y.linlin(0, 1, 0, deviceDisplayPane.bounds.width);
 				isOnline = remoteMegaphone.isOnline;
 				isRecording = remoteMegaphone.isRecording;
 				isPlaying = remoteMegaphone.isPlaying;
 				currentAngle = 2pi*0.2; // remoteMegaphone.currentAngle
 				//isTurning?
-				this.drawMegaphone(xPos, isOnline, isRecording, isPlaying, currentAngle);
+				this.drawMegaphone(xPos, yPos, isOnline, isRecording, isPlaying, currentAngle);
 			};
 			// 2. draw sound sources:
 			remoteSoundSources.do{arg remoteSoundSource;
-				var xPos, isOnline, isPlaying, amplitude;
-				xPos = devicePositionDict.at(remoteSoundSource.name).linlin(0, 1, 0, deviceDisplayPane.bounds.width);
+				var xPos, yPos, isOnline, isPlaying, amplitude;
+				xPos = devicePositionDict.at(remoteSoundSource.name).x.linlin(0, 1, 0, deviceDisplayPane.bounds.width);
+				yPos = devicePositionDict.at(remoteSoundSource.name).y.linlin(0, 1, 0, deviceDisplayPane.bounds.height);
 				isOnline = remoteSoundSource.isOnline;
 				isPlaying = remoteSoundSource.isPlaying;
 				//amplitude = remoteSoundSource.amplitude; // ignoring amp for now, only relevant for simulation
-				this.drawSoundSource(xPos, isOnline, isPlaying);
+				this.drawSoundSource(xPos, yPos, isOnline, isPlaying);
 			};
+			// 3. draw laptops
+			remoteLaptops.do{arg remoteLaptop;
+				var xPos, yPos, isOnline;
+				xPos = devicePositionDict.at(remoteLaptop.name).x.linlin(0, 1, 0, deviceDisplayPane.bounds.width);
+				yPos = devicePositionDict.at(remoteLaptop.name).y.linlin(0, 1, 0, deviceDisplayPane.bounds.height);
+				isOnline = remoteLaptop.isOnline;
+				this.drawLaptop(xPos, yPos, isOnline);
+			}
 		});
 		deviceDisplayPane.background_(Color.magenta(alpha:0.1));
 		deviceDisplayPane.animate_(true);
 		^deviceDisplayPane;
 	}
 
-	drawMegaphone {arg xPos, isOnline, isRecording, isPlaying, currentAngle; // isTurning?
+	drawMegaphone {arg xPos, yPos, isOnline, isRecording, isPlaying, currentAngle; // isTurning?
 		Pen.use{
 			var start, end, color;
 			// mag = 5;
@@ -202,7 +237,7 @@ CWGUI {
 		};
 	}
 
-	drawSoundSource {arg xPos, isOnline, isPlaying;
+	drawSoundSource {arg xPos, yPos, isOnline, isPlaying;
 		var position, fillColor;
 		fillColor = if (isOnline) {
 			if (isPlaying) { playColor } { onlineColor } // play color overrides online color
@@ -214,6 +249,21 @@ CWGUI {
 			Pen.translate(xPos, 40);
 			Pen.fillColor_(fillColor);
 			Pen.fillOval(Rect(soundSourceSize/2 * -1, soundSourceSize/2 * -1, soundSourceSize, soundSourceSize));
+		}
+	}
+
+	drawLaptop {arg xPos, yPos, isOnline;
+		var position, fillColor;
+		fillColor = if (isOnline) {
+			onlineColor
+		} {
+			offlineColor
+		};
+		Pen.use{
+			// (val: soundSource.amplitude.linlin(0, 1, 1, 0.2)
+			Pen.translate(xPos, yPos);
+			Pen.fillColor_(fillColor);
+			Pen.fillRect(Rect(laptopSize/2 * -1, laptopSize/2 * -1, laptopSize, laptopSize));
 		}
 	}
 

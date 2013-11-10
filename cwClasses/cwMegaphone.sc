@@ -250,30 +250,11 @@ CWLocalMegaphone {
 		oscPath = '/' ++ name;
 		inform("initialising data space for: " ++ oscPath);
 		dataspace = OSCDataSpace(utopian.node.addrBook, utopian.node.me, oscPath);
-		/*		dataspace.addDependant({arg dataspace, val, key, value;
-		this.updateState(key, value);
-		});*/
 	}
 
 	initResponders {
 
 		// provide option to free these?
-
-		/*		OSCFunc({arg msg;
-		var position;
-		# position = msg.drop(1);
-		megaphone.setPosition(position);
-		}, '\setPosition', recvPort: utopian.node.me.addr.port);
-
-		{key == \faceIn } {
-		megaphone.setPosition(0); // TODO: replace with real world value
-		}
-		{key == \faceOut } {
-		megaphone.setPosition(2pi/2); // TODO: replace with real world value
-		}
-		{key == \faceNext } {
-		megaphone.setPosition(2pi/4); // TODO: replace with real world value
-		}		*/
 
 		OSCFunc({arg msg;
 			var position;
@@ -429,8 +410,8 @@ CWRealMegaphone : CWAbstractMegaphone {
 
 	init {
 		inform("running real megaphone");
-		super.init;
 		pythonAddr = NetAddr("127.0.0.1", 10000);
+		super.init;
 	}
 
 	doStartRecording {
@@ -452,7 +433,7 @@ CWRealMegaphone : CWAbstractMegaphone {
 
 	doSetPlayVolume {arg volume;
 		// should we be able to set play volume even when not playing?
-		pythonAddr.sendMsg('/megaphone/volume', volume);
+		pythonAddr.sendMsg('/megaphone/playVolume', volume);
 	}
 
 	doSetPosition {arg targetAngle;
