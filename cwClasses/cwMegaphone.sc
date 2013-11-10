@@ -410,7 +410,7 @@ CWRealMegaphone : CWAbstractMegaphone {
 
 	init {
 		inform("running real megaphone");
-		pythonAddr = NetAddr("127.0.0.1", 10000);
+		pythonAddr = NetAddr("127.0.0.1", 9991);
 		super.init;
 	}
 
@@ -423,7 +423,7 @@ CWRealMegaphone : CWAbstractMegaphone {
 	}
 
 	doStartPlaying {arg initialVolume;
-		this.doSetPlayVolume(initialVolume);
+		if (initialVolume.notNil) { this.doSetPlayVolume(initialVolume) };
 		pythonAddr.sendMsg('/megaphone/play', 1); // HIGH
 	}
 
@@ -513,6 +513,10 @@ CWAbstractMegaphone {
 			}).play;
 		};
 		c.hang;
+	}
+
+	setPosition {arg position;
+		this.doSetPosition(position);
 	}
 
 	startRecording {

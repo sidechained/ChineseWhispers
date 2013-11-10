@@ -104,16 +104,17 @@ CWGUI {
 		var gui, displayPane, controlPane, sharedControlPane;
 		gui = View(nil, Rect(0, 0, 1200, 400));
 		displayPane = this.makeDeviceDisplayPane.fixedSize_(displayPaneSize);
-		//controlPane = this.makeControlPane.fixedSize_(200, 200);
-		//sharedControlPane = this.makeSharedControlPane.fixedSize_(400, 100);
-		//controlPane = View().fixedSize_(controlPaneSize).background_(Color.red);
-		gui.layout_(HLayout(*[displayPane]) // , controlPane, sharedControlPane
+		controlPane = this.makeControlPane.fixedSize_(250, 400);
+		sharedControlPane = this.makeSharedControlPane.fixedSize_(400, 100);
+		gui.layout_(HLayout(*[displayPane, controlPane]) // , controlPane, sharedControlPane
 			.spacing_(0)
 			.margins_(0)
 		);
 		gui.front;
 		^gui;
 	}
+
+	// device pane:
 
 	makeDeviceDisplayPane {
 		var deviceDisplayPane;
@@ -267,64 +268,63 @@ CWGUI {
 		}
 	}
 
-	/*	makeControlPane {
-	var megaphoneControlRows, soundSourceControlRow, megaphoneControlPane;
-	megaphoneControlRows = expectedMegaphoneNames.collect{arg megaphoneName;
-	this.makeMegaphoneControlRow(megaphoneName);
-	};
-	expectedSoundSourceNames.collect{arg soundSourceName;
-	this.makeSoundSourceControlRow(soundSourceName);
-	};
-	megaphoneControlPane = View().layout_(
-	VLayout(*megaphoneControlRows ++ soundSourceControlRow)
-	.spacing_(0)
-	.margins_(0)
-	);
-	^megaphoneControlPane;
-	}*/
+	makeControlPane {
+		var megaphoneControlRows, soundSourceControlRows, megaphoneControlPane;
+		megaphoneControlRows = remoteMegaphones.collect{arg megaphone;
+			this.makeMegaphoneControlRow(megaphone);
+		};
+		soundSourceControlRows = remoteSoundSources.collect{arg soundSource;
+			this.makeSoundSourceControlRow(soundSource);
+		};
+		megaphoneControlPane = View().background_(Color.red).layout_(
+			VLayout(*megaphoneControlRows ++ soundSourceControlRows)
+			.spacing_(0)
+			.margins_(0)
+		);
+		^megaphoneControlPane.postln;
+	}
 
-	/*	makeMegaphoneControlRow {arg megaphoneName;
-	var megaphone, megaphoneControlRow;
-	megaphone = expectedDevices.at(megaphoneName);
-	megaphoneControlRow = View();
-	megaphoneControlRow.layout_(HLayout(
-	StaticText().string_(megaphoneName),
-	Button().states_([["face out"]]).action_({megaphone.dataspace.put(\faceOut)}),
-	Button().states_([["face in"]]).action_({megaphone.dataspace.put(\faceIn)}),
-	Button().states_([["face next"]]).action_({megaphone.dataspace.put(\faceNext)}),
-	Button().states_([["rec"], ["rec", Color.white, Color.red(alpha: 0.2)]]).action_({arg butt;
-	case
-	{butt.value == 1} { megaphone.dataspace.put(\setRecordState, true) }
-	{butt.value == 0} { megaphone.dataspace.put(\setRecordState, false) }
-	}),
-	Button().states_([["play"], ["play", Color.white, Color.red(alpha: 0.2)]]).action_({arg butt;
-	case
-	{butt.value == 1} { megaphone.dataspace.put(\setPlaybackState, true) }
-	{butt.value == 0} { megaphone.dataspace.put(\setPlaybackState, false) }
-	}),
-	)
-	.spacing_(0)
-	.margins_(0)
-	);
-	^megaphoneControlRow;
-	}*/
+	makeMegaphoneControlRow {arg megaphone;
+		var megaphoneControlRow;
+		megaphoneControlRow = View().layout_(HLayout(
+			StaticText().string_(megaphone.name),
+			Button().states_([["rec"], ["rec", Color.white, Color.red(alpha: 0.2)]]).action_(
+				/*				{arg butt;
+				case
+				{butt.value == 1} { megaphone.dataspace.put(\setRecordState, true) }
+				{butt.value == 0} { megaphone.dataspace.put(\setRecordState, false) }
+				}*/
+			),
+			Button().states_([["play"], ["play", Color.white, Color.red(alpha: 0.2)]]).action_(
+				/*				{arg butt;
+				case
+				{butt.value == 1} { megaphone.dataspace.put(\setPlaybackState, true) }
+				{butt.value == 0} { megaphone.dataspace.put(\setPlaybackState, false) }
+				}	*/
+			),
+		)
+		.spacing_(0)
+		.margins_(0)
+		);
+		^megaphoneControlRow;
+	}
 
-	/*	makeSoundSourceControlRow {arg soundSourceName;
-	var soundSource, soundSourceControlRow;
-	soundSource = expectedDevices.at(soundSourceName);
-	soundSourceControlRow = View();
-	soundSourceControlRow.layout_(HLayout(
-	StaticText().string_("sndplyr:"),
-	Button().states_([["playSF"], ["playSF", Color.white, Color.red(alpha: 0.2)]]).action_({arg butt;
-	var soundSourceID;
-	soundSourceID = node.addrBook.atName(soundSourceName).id;
-	case
-	{butt.value == 1} { soundSource.dataspace(soundSourceID, \setPlaybackState, true, 1) } TODO: replace with real worl value
-	{butt.value == 0} { soundSource.dataspace(soundSourceID, \setPlaybackState, false) }
-	});
-	));
-	^soundSourceControlRow;
-	}*/
+	makeSoundSourceControlRow {arg soundSource;
+		var soundSourceControlRow;
+		soundSourceControlRow = View().layout_(HLayout(
+			StaticText().string_(soundSource.name),
+			Button().states_([["playSF"], ["playSF", Color.white, Color.red(alpha: 0.2)]]).action_(
+/*				{arg butt;
+				var soundSourceID;
+				soundSourceID = node.addrBook.atName(soundSourceName).id;
+				case
+				{butt.value == 1} { soundSource.dataspace(soundSourceID, \setPlaybackState, true, 1) } TODO: replace with real worl value
+				{butt.value == 0} { soundSource.dataspace(soundSourceID, \setPlaybackState, false) }
+			}*/
+			);
+		));
+		^soundSourceControlRow;
+	}
 
 	/*	makeSharedControlPane {
 	var megaphoneControlRows, soundSourceControlRows, megaphoneControlPane;

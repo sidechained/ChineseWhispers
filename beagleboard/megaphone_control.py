@@ -32,7 +32,7 @@ try:
 except ImportError:
     print "Adafruit BBIO library not found...(not a problem if running in local mode)"
 
-receiveAddress = '127.0.0.1', 10001 # 10000 sometimes already in use, why?
+receiveAddress = '127.0.0.1', 9991 # 10000 sometimes already in use, why?
 pythonOscPath = '/megaphone'
 pythonSetupHandlerOscPath = '/setupHandler'
 initialisedPins = []
@@ -63,25 +63,24 @@ def init_server():
 
 def init_device():
     deviceOperations = [
-        ['play', 'GPIO', 'P9_27' ],
-        ['record', 'GPIO', 'P9_12' ],
-        ['playVolume', 'PWM', 'P9_14' ],
-        ['position', 'PWM', 'P9_16' ]
-    #   ['pitchUp', 'GPIO', 'P9_15' ],
-    #   ['pitchDown', 'GPIO', 'P9_16' ]
+        ['position', 'PWM', 'P9_16', 60 ],
+        ['record', 'GPIO', 'P9_27', None ],
+        ['play', 'GPIO', 'P9_12', None ],
+        ['playVolume', 'PWM', 'P9_22', 20000 ]
         ]
     for operation in deviceOperations:
         operationName = operation[0]
         pinMode = operation[1]
         pin = operation[2]
-        init_actuation_operation(operationName, pinMode, pin)
+	param = operation[3]
+        init_actuation_operation(operationName, pinMode, pin, param)
 
 # actuation functions:
-def init_actuation_operation(operationName, pinMode, pin):
+def init_actuation_operation(operationName, pinMode, pin, param):
 	if pinMode == 'GPIO':
 		init_gpio_pin(operationName, pin)
 	elif pinMode == 'PWM':
-	 	init_pwm_pin(operationName, pin)
+	 	init_pwm_pin(operationName, pin, param)
 
 def init_gpio_pin(operationName, pin):
     recvOscPath = pythonOscPath + '/' + operationName
@@ -101,19 +100,19 @@ def init_gpio_pin(operationName, pin):
 
     pythonServer.addMsgHandler(recvOscPath, gpio_pin_handler)
             
-def init_pwm_pin(operationName, pin):
+def init_pwm_pin(operationName, pin, param):
     recvOscPath = pythonOscPath + '/' + operationName
     print recvOscPath + " " + pin
 
     def pwm_pin_handler(addr, tags, msg, source): # how can we pass in our own values here?
         value = msg[0] # value should always be a single value, so we just take the first in the array
         pinIsInitialised = pin in initialisedPins
-        print initialisedPins
+        # print initialisedPins
         if not pinIsInitialised:
-            print "starting PWM '{0}' '{1}'".format(pin, value)
-            initialisedPins.append(pin)
-            if bbbExists == True:
-                PWM.start(pin, value)
+            	print "starting PWM '{0}' '{1}'".format(pin, value, param)
+            	initialisedPins.append(pin)
+           	if bbbExists == True:
+			PWM.start(pin, value, param)
         else:
             print "setting PWM '{0} '{1}'".format(pin, value)
             if bbbExists == True:
