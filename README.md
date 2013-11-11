@@ -4,23 +4,19 @@
 - an exploration/simulation of megaphone rotation and recording/playback from a central 'sound player'
 - three classes at the moment: Megaphone, SoundPlayer, and MegaGUI
 
-To Do List:
-// first, check the networked megaphone and sound source work individually, get them working with utopian
+* Big Fat To Do List
 
-// managing shared access to sound sources
-
-// laptops run a gui
-// option 1:
-// the gui allows or denies control of the resources
-// the availability or not of the resources is shared between the laptops
-// the resources themselves i.e. NetworkedSourceSource don't know who is in control of them
-// but the remote versions do i.e. RemoteSoundSource
-// SharedRemoteSoundSource
-
-// think of a simple case where a sound source is controlled by laptop 1, laptop 2 or no-one
-// controlled by
-
-// revisit GUI classes
+- added many items from Crewe Day 2 (10th November)
+DONE: remapped volume and position parameters in python (4 as the starting pos, 13 is the ending position, 8.5 is the midway position)
+TODO: implement online checks in CWRemoteMegaphone (before being able to play, set position, etc)
+DONE: fixed problem that initial volume is never sent
+TODO: modify set position code so that a speed can be specified (go to this position in this amount of time)
+TODO: rewrite python script to initialise pins on startup, not on first call (initial positions)
+TODO: python echo (to diagnose problems)
+TODO: fix megaphone offset in gui
+TODO: keep volume level when re-playing. take value from gui?
+TODO: adjust calibration forwards a little (5 to 14?), some servos grind at the current zero point 
+TODO: implement startup script for megaphones (when code is solid)
 
 - TODO: rename classes - local and remote depends on perspective - better to call Megaphone and MegaphoneInterface
 - TODO: 'isPlaying' should be implemented at the AbstractMegaphone level, but how to implement it on the real megaphone?
@@ -126,9 +122,7 @@ Spacing Decisions
 - 4. servo possible angle of rotation
 - the megaphone length is the defining factor for everything, as the other two can be varied
 
-*
-
-Notes
+* Parameter Sharing Between Megaphones
 
 // two approaches...
 
@@ -144,3 +138,13 @@ Notes
 // - each time any parameters of the megaphone change, we add it (this) to the objectspace
 // - on the dependency side, when a new object is received, it overwrites the existing one in the megaphone array
 // - the trouble with this is the local updates would be done before the remote ones: any way to avoid this? maybe the megaphone is duplicated, modified, put in the space, and only is updated locally when it comes out as a dependency...hmmm
+
+* Managing shared access to sound sources:
+// -laptops run a gui
+// -option 1:
+// -the gui allows or denies control of the resources
+// -the availability or not of the resources is shared between the laptops
+// -the resources themselves i.e. NetworkedSourceSource don't know who is in control of them
+// -but the remote versions do i.e. RemoteSoundSource
+// -SharedRemoteSoundSource
+// think of a simple case where a sound source is controlled by laptop 1, laptop 2 or no-one
