@@ -1,0 +1,40 @@
+see this issue: https://github.com/adafruit/adafruit-beaglebone-io-python/issues/31
+
+on panl - 192.168.2.16 PWM pin 16 and 22 will not start (14, 21 fine)
+on mega - 192.168.2.16 PWM pin 16 and 22 will not start (14, 21 fine)
+on jona - 192.168.2.13 PWM pin 16 and 22 will not start (14, 21 fine)
+on pott - 192.168.2.14 PWM pin 16 and 22 will not start (14, 21 fine)
+on gust - 192.168.2.15 PWM pin 16 and 22 will not start (14, 21 fine)
+
+import Adafruit_BBIO.PWM as PWM
+
+PWM.start("P9_22", 100, 20000.0)
+PWM.set_duty_cycle("P9_22", 0)
+PWM.set_duty_cycle("P9_22", 100)
+
+After more experiments (and thanks to http://shallowsky.com/blog/hardware/beaglebone-black-gpio.html ), I think there are actually four working PWM pins:
+
+https://github.com/adafruit/adafruit-beaglebone-io-python/issues/41
+http://beagleboard.org/Support/BoneScript/analogWrite/
+
+Use 16
+P9_16
+P9_21
+P9_22
+
+PWM.start("P9_14", 100, 20000.0)
+PWM.set_duty_cycle("P9_14", 0)
+PWM.set_duty_cycle("P9_14", 100)
+
+PWM.start("P9_16", 4.5, 60.0)
+PWM.set_duty_cycle("P9_16", 4.5)
+PWM.set_duty_cycle("P9_16", 14)
+
+PWM.start("P9_21", 4.5, 60.0)
+PWM.set_duty_cycle("P9_21", 4.5)
+PWM.set_duty_cycle("P9_21", 14)
+
+
+GPIO.setup("P8_10", GPIO.OUT)
+GPIO.output("P8_10", GPIO.HIGH)
+GPIO.cleanup()
