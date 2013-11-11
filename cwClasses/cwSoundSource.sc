@@ -161,14 +161,13 @@ CWLocalSoundSource : CWSoundSource {
 	doWhenMeAdded {
 		name = ('soundSource' ++ index).asSymbol;
 		inform("registering with name: " ++ name);
-		utopian.node.register(name);
-		utopian.node.me.postln;
 		this.initDataSpace;
 		this.initResponders;
 	}
 
 	doWhenBooted {
 		server = utopian.server;
+		utopian.server.postln;
 		this.initAmplitudeResponder;
 		this.initSynthDef;
 		this.readBuffers;
