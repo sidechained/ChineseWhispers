@@ -106,6 +106,12 @@ def init_pwm_pin(operationName, pin, param):
 
     def pwm_pin_handler(addr, tags, msg, source): # how can we pass in our own values here?
         value = msg[0] # value should always be a single value, so we just take the first in the array
+        if operationName == 'position':
+            value = scale(value, (0., 180.), (4., 13.)) # convert degrees to values the servo understands 
+            print"remapped position to '{0}'".format(value)
+        if operationName == 'playVolume':
+            value = scale(value, (0., 1.), (0., 100.)) # preferably remap more exponetially here
+            print"remapped volume to '{0}'".format(value)
         pinIsInitialised = pin in initialisedPins
         # print initialisedPins
         if not pinIsInitialised:
@@ -120,6 +126,9 @@ def init_pwm_pin(operationName, pin, param):
 
     pythonServer.addMsgHandler(recvOscPath, pwm_pin_handler)
 
+def scale(val, src, dst):
+    return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
+    
 # main:
 parse_command_line_options()
 init_server()

@@ -18,15 +18,15 @@ CWSharedRemoteSoundSource : CWRemoteSoundSource {
 
 	takeControl {
 		// no checks here, can always grab control
-		this.takeControlOfPlayback(());
-		this.takeControlOfVolume(());
+		this.takeControlOfPlayback;
+		this.takeControlOfVolume;
 		sharedControlSpace.put(\controlledBy, node.me.id);
 	}
 
 	relinquishControl {
 		if (sharedControlSpace.at(\controlledBy) == node.me.id) {
-			this.relinquishControlOfPlayback(());
-			this.relinquishControlOfVolume(());
+			this.relinquishControlOfPlayback;
+			this.relinquishControlOfVolume;
 			sharedControlSpace.put(\controlledBy, \reset);
 			// cannot use nil as it gets converted to a 0 over network
 		} {

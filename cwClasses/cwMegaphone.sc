@@ -13,20 +13,20 @@ CWSharedRemoteMegaphone : CWRemoteMegaphone {
 	// shared control:
 
 	takeControl {
-		this.takeControlOfPosition(());
-		this.takeControlOfRecording(());
-		this.takeControlOfPlayback(());
-		this.takeControlOfVolume(());
+		this.takeControlOfPosition;
+		this.takeControlOfRecording;
+		this.takeControlOfPlayback;
+		this.takeControlOfVolume;
 		sharedControlSpace.put(\controlledBy, node.me.id);
 	}
 
 	relinquishControl {
 		if (sharedControlSpace.at(\controlledBy) == node.me.id) {
-			this.relinquishControlOfPosition(());
-			this.relinquishControlOfRecording(());
-			this.relinquishControlOfPlayback(());
-			this.relinquishControlOfPlayVolume(());
-			dataspace.put(\controlledBy, \reset); // cannot use nil as it gets converted to a 0 over network
+			this.relinquishControlOfPosition;
+			this.relinquishControlOfRecording;
+			this.relinquishControlOfPlayback;
+			this.relinquishControlOfPlayVolume;
+			sharedControlSpace.put(\controlledBy, \reset); // cannot use nil as it gets converted to a 0 over network
 		} {
 			warn("you are not in control of this sound source");
 		};
@@ -140,7 +140,7 @@ CWRemoteMegaphone {
 
 	// actuation
 
-	var index, <node, <name, <dataspace;
+	var <index, <node, <name, <dataspace, <currentAngle;
 
 	*new {arg index, node;
 		^super.newCopyArgs(index, node).initRemoteMegaphone;
@@ -149,13 +149,27 @@ CWRemoteMegaphone {
 	initRemoteMegaphone {
 		// do only once this node is online
 		var oscPath;
+		currentAngle = 0;
 		name = ('megaphone' ++ index).asSymbol;
 		oscPath = '/' ++ name;
 		dataspace = OSCDataSpace(node.addrBook, node.me, oscPath: oscPath);
 	}
 
 	setPosition {arg position;
+		currentAngle = position;
 		node.addrBook.sendName(name, \setPosition, position);
+	}
+
+	faceLeft {arg position;
+		this.setPosition(0);
+	}
+
+	faceForward {arg position;
+		this.setPosition(90);
+	}
+
+	faceRight {arg position;
+		this.setPosition(180);
 	}
 
 	startRecording {
@@ -166,8 +180,8 @@ CWRemoteMegaphone {
 		node.addrBook.sendName(name, \stopRecording);
 	}
 
-	startPlaying {
-		node.addrBook.sendName(name, \startPlaying);
+	startPlaying {arg initialVolume;
+		node.addrBook.sendName(name, \startPlaying, initialVolume);
 	}
 
 	stopPlaying {
@@ -179,10 +193,6 @@ CWRemoteMegaphone {
 	}
 
 	//
-
-	currentAngle {
-		^dataspace.at(\currentAngle) ?? { 0 };
-	}
 
 	isOnline {
 		^node.addrBook.atName(name) !? { node.addrBook.atName(name).online } ?? { false }
@@ -259,55 +269,52 @@ CWLocalMegaphone {
 		OSCFunc({arg msg;
 			var position;
 			# position = msg.drop(1);
-			[\setPosition].postln;
-			this.doSetPosition;
+			msg.postln;
+			this.doSetPosition(position);
 		}, '\setPosition', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
-			[\startRecording].postln;
+			msg.postln;
 			this.doStartRecording;
 		}, '\startRecording', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
-			[\stopRecording].postln;
+			msg.postln;
 			this.doStopRecording;
 		}, '\stopRecording', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
 			var initialVolume;
 			# initialVolume = msg.drop(1);
-			[\startPlaying].postln;
+			msg.postln;
 			this.doStartPlaying(initialVolume);
 		}, '\startPlaying', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
-			[\stopPlaying].postln;
+			msg.postln;
 			this.doStopPlaying;
 		}, '\stopPlaying', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
 			var volume;
 			# volume = msg.drop(1);
-			[\setPlayVolume].postln;
+			msg.postln;
 			this.doSetPlayVolume(volume);
 		}, '\setPlayVolume', recvPort: utopian.node.me.addr.port);
 
 	}
 
 	doSetPosition {arg position;
-		\localMegaphonedoStartRecording.postln;
 		// TODO ? set isTurning here?
 		megaphone.doSetPosition(position);
 	}
 
 	doStartRecording {
-		\localMegaphonedoStartRecording.postln;
 		dataspace.put(\isRecording, true);
 		megaphone.doStartRecording;
 	}
 
 	doStopRecording {
-		\localMegaphonedoStopRecording.postln;
 		dataspace.put(\isRecording, false);
 		megaphone.doStopRecording;
 	}
@@ -325,10 +332,6 @@ CWLocalMegaphone {
 	doSetPlayVolume {arg volume;
 		megaphone.doSetPlayVolume(volume);
 	}
-
-/*	setCurrentAngle {arg currentAngle;
-		dataspace.put(\currentAngle, currentAngle)
-	}*/
 
 }
 
@@ -436,10 +439,23 @@ CWRealMegaphone : CWAbstractMegaphone {
 		pythonAddr.sendMsg('/megaphone/playVolume', volume);
 	}
 
-	doSetPosition {arg targetAngle;
-		pythonAddr.sendMsg('/megaphone/position', targetAngle); // HIGH
+	doSetPosition {arg position;
+		pythonAddr.sendMsg('/megaphone/position', position);
 	}
 
+	// convenience methods
+
+	doFaceLeft {arg position;
+		this.doSetPosition(0);
+	}
+
+	doFaceForward {arg position;
+		this.doSetPosition(90);
+	}
+
+	doFaceRight {arg position;
+		this.doSetPosition(180);
+	}
 }
 
 CWAbstractMegaphone {

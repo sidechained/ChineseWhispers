@@ -2,7 +2,7 @@ CWLaptop {
 
 	// one utopian, many remote objects (megaphones and sound sources)
 
-	var index, <utopian, <remoteMegaphones, <remoteSoundSources, <remoteLaptops, <gui;
+	var index, <name, <utopian, <remoteMegaphones, <remoteSoundSources, <remoteLaptops, <gui;
 	// index won't make sense in the end
 
 	*new {arg index;
@@ -19,23 +19,35 @@ CWLaptop {
 
 	doWhenMeAdded {
 		// name the laptop (for ease of recongition in the addrBook)
-		utopian.node.register('laptop' ++ index);
+		name = 'laptop' ++ index;
+		utopian.node.register(name);
 		// add megaphones:
 		remoteMegaphones = 5.collect{arg index;
-			CWSharedRemoteMegaphone(index, utopian.node);
+			CWRemoteMegaphone(index, utopian.node);
 		};
+/*		remoteMegaphones.do{arg remoteMegaphone;
+			remoteMegaphone.sharedControlSpace.addDependant({arg a, b, c, d;
+				[remoteMegaphone.name, a, b, c, d].postln;
+			})
+		};*/
 		// add sound sources:
 		remoteSoundSources = 2.collect{arg index;
-			CWSharedRemoteSoundSource(index, utopian.node);
+			CWRemoteSoundSource(index, utopian.node);
 		};
+/*		remoteSoundSources.do{arg remoteSoundSource;
+			remoteSoundSource.sharedControlSpace.addDependant({arg a, b, c, d;
+				[remoteSoundSource.name, a, b, c, d].postln;
+			})
+		};*/
 		// add laptops:
 		remoteLaptops = 2.collect{arg index;
 			CWRemoteLaptop(index, utopian.node);
 		};
-		gui = CWGUI(remoteMegaphones, remoteSoundSources, remoteLaptops);
+		gui = CWGUI(remoteMegaphones, remoteSoundSources, remoteLaptops, index);
 	}
 
 }
+
 
 CWRemoteLaptop {
 
@@ -59,18 +71,18 @@ CWRemoteLaptop {
 CWGUI {
 	// draw the expected number of megaphones
 	// have a colour for online, color for offline
-	var remoteMegaphones, remoteSoundSources, remoteLaptops;
+	var remoteMegaphones, remoteSoundSources, remoteLaptops, index;
 	var <node;
 	var devicePositionDict;
 	var onlineColor, offlineColor, playColor, recColor, stopColor;
-	var displayPaneSize, controlPaneSize;
+	var guiSize, displayPaneSize, controlPaneSize, sharedControlPaneSize;
 	var soundSourceSize, megaphoneSize, megaphoneLength, megaphoneMicSize, megaphoneHornSize, laptopSize;
 	var megaphoneParamFuncArray, <megaphoneParamButtonDict;
 	var soundSourceParamFuncArray, <soundSourceParamButtonDict;
 	var defaultBackgroundColor;
 
-	*new {arg remoteMegaphones, remoteSoundSources, remoteLaptops;
-		^super.newCopyArgs(remoteMegaphones, remoteSoundSources, remoteLaptops).init;
+	*new {arg remoteMegaphones, remoteSoundSources, remoteLaptops, index;
+		^super.newCopyArgs(remoteMegaphones, remoteSoundSources, remoteLaptops, index).init;
 	}
 
 	init {
@@ -79,8 +91,10 @@ CWGUI {
 		playColor = Color.green;
 		recColor = Color.red;
 		stopColor = Color.black;
-		displayPaneSize = Size(400, 400);
-		controlPaneSize = Size(400, 400);
+		guiSize = Size(1024, 300);
+		displayPaneSize = Size(guiSize.width/3, guiSize.height);
+		controlPaneSize = Size(guiSize.width/3, guiSize.height);
+		sharedControlPaneSize = Size(guiSize.width/3, guiSize.height);
 		soundSourceSize = displayPaneSize.width/10;
 		megaphoneSize = displayPaneSize.width/10;
 		megaphoneMicSize = megaphoneSize/10;
@@ -101,12 +115,13 @@ CWGUI {
 	}
 
 	makeGUI {
-		var gui, displayPane, controlPane, sharedControlPane;
-		gui = View(nil, Rect(0, 0, 1200, 400));
+		var gui, displayPane, controlPane, sharedControlPane, yPos;
+		yPos = index * guiSize.height.postln;
+		gui = View(nil, Rect(0, yPos, guiSize.width, guiSize.height));
 		displayPane = this.makeDeviceDisplayPane.fixedSize_(displayPaneSize);
-		controlPane = this.makeControlPane.fixedSize_(250, 400);
-		sharedControlPane = this.makeSharedControlPane.fixedSize_(400, 100);
-		gui.layout_(HLayout(*[displayPane, controlPane]) // , controlPane, sharedControlPane
+		controlPane = this.makeControlPane.fixedSize_(controlPaneSize).background_(Color.yellow(alpha:0.2));
+		//sharedControlPane = this.makeSharedControlPane.fixedSize_(sharedControlPaneSize);
+		gui.layout_(HLayout(*[displayPane, controlPane])
 			.spacing_(0)
 			.margins_(0)
 		);
@@ -130,8 +145,8 @@ CWGUI {
 				isOnline = remoteMegaphone.isOnline;
 				isRecording = remoteMegaphone.isRecording;
 				isPlaying = remoteMegaphone.isPlaying;
-				currentAngle = 2pi*0.2; // remoteMegaphone.currentAngle
-				//isTurning?
+				currentAngle = remoteMegaphone.currentAngle;
+				currentAngle = currentAngle * (2pi/2) / 180; // degrees to radians
 				this.drawMegaphone(xPos, yPos, isOnline, isRecording, isPlaying, currentAngle);
 			};
 			// 2. draw sound sources:
@@ -173,11 +188,11 @@ CWGUI {
 					offlineColor
 				};
 			};
-			this.drawCentreBlob(xPos, 40, color);
+			this.drawCentreBlob(xPos, yPos, color);
 			// draw centre blob (mic stand)
-			this.drawBody(xPos, 40, currentAngle);
-			this.drawHorn(xPos, 40, currentAngle);
-			this.drawMic(xPos, 40, currentAngle);
+			this.drawBody(xPos, yPos, currentAngle);
+			this.drawHorn(xPos, yPos, currentAngle);
+			this.drawMic(xPos, yPos, currentAngle);
 		}
 	}
 
@@ -193,7 +208,6 @@ CWGUI {
 	drawBody {arg x, y, currentAngle;
 		Pen.use {
 			var up, down;
-			currentAngle = currentAngle;
 			Pen.translate(x, y);
 			up = Polar(megaphoneSize/2, (currentAngle - (2pi/2))%2pi).asComplex.asPoint;
 			Pen.translate(up.x, up.y);
@@ -247,7 +261,7 @@ CWGUI {
 		};
 		Pen.use{
 			// (val: soundSource.amplitude.linlin(0, 1, 1, 0.2)
-			Pen.translate(xPos, 40);
+			Pen.translate(xPos, yPos);
 			Pen.fillColor_(fillColor);
 			Pen.fillOval(Rect(soundSourceSize/2 * -1, soundSourceSize/2 * -1, soundSourceSize, soundSourceSize));
 		}
@@ -276,7 +290,7 @@ CWGUI {
 		soundSourceControlRows = remoteSoundSources.collect{arg soundSource;
 			this.makeSoundSourceControlRow(soundSource);
 		};
-		megaphoneControlPane = View().background_(Color.red).layout_(
+		megaphoneControlPane = View().layout_(
 			VLayout(*megaphoneControlRows ++ soundSourceControlRows)
 			.spacing_(0)
 			.margins_(0)
@@ -288,20 +302,17 @@ CWGUI {
 		var megaphoneControlRow;
 		megaphoneControlRow = View().layout_(HLayout(
 			StaticText().string_(megaphone.name),
-			Button().states_([["rec"], ["rec", Color.white, Color.red(alpha: 0.2)]]).action_(
-				/*				{arg butt;
-				case
-				{butt.value == 1} { megaphone.dataspace.put(\setRecordState, true) }
-				{butt.value == 0} { megaphone.dataspace.put(\setRecordState, false) }
-				}*/
+			NumberBox()
+			.action_( {arg box; megaphone.setPosition(box.value) } ),
+			Button()
+			.states_([["rec", Color.black, Color.red(alpha:0.1)], ["rec", Color.black, Color.green(alpha:0.1)]])
+			.action_({arg butt; this.megaphoneToggleRecord(butt.value, megaphone) }
 			),
-			Button().states_([["play"], ["play", Color.white, Color.red(alpha: 0.2)]]).action_(
-				/*				{arg butt;
-				case
-				{butt.value == 1} { megaphone.dataspace.put(\setPlaybackState, true) }
-				{butt.value == 0} { megaphone.dataspace.put(\setPlaybackState, false) }
-				}	*/
-			),
+			Button()
+			.states_([["play", Color.black, Color.red(alpha:0.1)], ["play", Color.black, Color.green(alpha:0.1)]])
+			.action_( {arg butt; this.megaphoneTogglePlay(butt.value, megaphone) }),
+			NumberBox()
+			.action_( {arg box; megaphone.setPlayVolume(box.value) } ),
 		)
 		.spacing_(0)
 		.margins_(0)
@@ -309,168 +320,143 @@ CWGUI {
 		^megaphoneControlRow;
 	}
 
+	megaphoneToggleRecord {arg buttValue, megaphone;
+		case
+		{buttValue == 1} { megaphone.startRecording }
+		{buttValue == 0} { megaphone.stopRecording }
+	}
+
+	megaphoneTogglePlay {arg buttValue, megaphone;
+		case
+		{buttValue == 1} { megaphone.startPlaying(1) } // enforce level?
+		{buttValue == 0} { megaphone.stopPlaying }
+	}
+
 	makeSoundSourceControlRow {arg soundSource;
 		var soundSourceControlRow;
 		soundSourceControlRow = View().layout_(HLayout(
 			StaticText().string_(soundSource.name),
-			Button().states_([["playSF"], ["playSF", Color.white, Color.red(alpha: 0.2)]]).action_(
-/*				{arg butt;
-				var soundSourceID;
-				soundSourceID = node.addrBook.atName(soundSourceName).id;
-				case
-				{butt.value == 1} { soundSource.dataspace(soundSourceID, \setPlaybackState, true, 1) } TODO: replace with real worl value
-				{butt.value == 0} { soundSource.dataspace(soundSourceID, \setPlaybackState, false) }
-			}*/
-			);
+			Button()
+			.states_([["play"]])
+			.action_({arg butt; this.soundSourceTogglePlay(soundSource, butt.value)});
 		));
 		^soundSourceControlRow;
 	}
 
-	/*	makeSharedControlPane {
-	var megaphoneControlRows, soundSourceControlRows, megaphoneControlPane;
-	megaphoneControlRows = expectedMegaphoneNames.collect{arg megaphoneName;
-	this.makeMegaphoneSharedControlRow(megaphoneName);
-	};
-	soundSourceControlRows = expectedSoundSourceNames.collect{arg soundSourceName;
-	this.makeSoundSourceSharedControlRow(soundSourceName);
-	};
-	megaphoneControlPane = View().layout_(
-	HLayout(*megaphoneControlRows ++ soundSourceControlRows)
-	.spacing_(0)
-	.margins_(0)
-	);
-	^megaphoneControlPane;
-	}*/
-
-	/*	makeMegaphoneSharedControlRow {arg megaphoneName;
-	var megaphone, rows, sharedControlPane;
-	megaphone = expectedDevices.at(megaphoneName);
-	defaultBackgroundColor = Color.black;
-	megaphoneParamButtonDict = IdentityDictionary.new;
-	megaphoneParamFuncArray = [
-	[\positionControlledBy, "pos", {
-	megaphone.dataspace.put(\takeControlOfPosition);
-	}, {
-	megaphone.dataspace.put(\relinquishControlOfPosition);
-	} ],
-	[\recordingControlledBy, "rec", {
-	megaphone.dataspace.put(\takeControlOfRecording)
-	}, {
-	megaphone.dataspace.put(\relinquishControlOfRecording)
-	} ],
-	[\playbackControlledBy, "play", {
-	megaphone.dataspace.put(\takeControlOfPlayback)
-	}, {
-	megaphone.dataspace.put(\relinquishControlOfPlayback)
-	} ],
-	[\volumeControlledBy, "vol", {
-	megaphone.dataspace.put(\takeControlOfVolume)
-	}, {
-	megaphone.dataspace.put(\relinquishControlOfVolume)
-	} ]
-	];
-	rows = megaphoneParamFuncArray.collect{arg paramFuncArray;
-	var key, paramName, takeControlFunc, relinquishControlFunc;
-	# key, paramName, takeControlFunc, relinquishControlFunc = paramFuncArray;
-	this.makeMegaphoneParamRow(key, paramName, takeControlFunc, relinquishControlFunc)};
-	sharedControlPane = View(nil, Rect(0, 0, 50, 100));
-	^sharedControlPane.layout_(VLayout(*rows).spacing_(4).margins_(0));
-	}*/
-
-	/*	makeSoundSourceSharedControlRow {arg soundSourceName;
-	var soundSource, rows, sharedControlPane;
-	soundSource = expectedDevices.at(soundSourceName);
-	soundSourceParamButtonDict = IdentityDictionary.new;
-	soundSourceParamFuncArray = [
-	[\playbackControlledBy, "play", {
-	soundSource.dataspace.put(\takeControlOfPlayback)
-	}, {
-	soundSource.dataspace.put(\relinquishControlOfPlayback)
-	} ],
-	[\volumeControlledBy, "vol", {
-	soundSource.dataspace.put(\takeControlOfVolume)
-	}, {
-	soundSource.dataspace.put(\relinquishControlOfVolume)
-	} ]
-	];
-	rows = soundSourceParamFuncArray.collect{arg paramFuncArray;
-	var key, paramName, takeControlFunc, relinquishControlFunc;
-	# key, paramName, takeControlFunc, relinquishControlFunc = paramFuncArray;
-	this.makeSoundSourceParamRow(key, paramName, takeControlFunc, relinquishControlFunc)};
-	sharedControlPane = View(nil, Rect(0, 0, 50, 100));
-	^sharedControlPane.layout_(VLayout(*rows).spacing_(4).margins_(0));
-	}*/
-
-	/*	makeMegaphoneParamRow {arg key, paramName, takeControlFunc, relinquishControlFunc;
-	var paramButton, rButton, controllingColorView;
-	paramButton = Button()
-	.fixedSize_(Size(43, 26))
-	.states_([[paramName]])
-	.action_(takeControlFunc)
-	.background_(Color.black); // default background color
-	megaphoneParamButtonDict.put(key, paramButton); // hold this for later use
-	rButton = Button()
-	.fixedSize_(Size(23, 26))
-	.states_([["r"]])
-	.action_(relinquishControlFunc);
-	controllingColorView = View()
-	.fixedSize_(Size(43, 26))
-	^View().layout_(HLayout(*[paramButton, rButton]).spacing_(0).margins_(0))
-	}*/
-
-	/*	makeSoundSourceParamRow {arg key, paramName, takeControlFunc, relinquishControlFunc;
-	var paramButton, rButton, controllingColorView;
-	paramButton = Button()
-	.fixedSize_(Size(43, 26))
-	.states_([[paramName]])
-	.action_(takeControlFunc)
-	.background_(Color.black); // default background color
-	soundSourceParamButtonDict.put(key, paramButton); // hold this for later use
-	rButton = Button()
-	.fixedSize_(Size(23, 26))
-	.states_([["r"]])
-	.action_(relinquishControlFunc);
-	controllingColorView = View()
-	.fixedSize_(Size(43, 26))
-	^View().layout_(HLayout(*[paramButton, rButton]).spacing_(0).margins_(0))
-	}*/
-
-	/*	mapIdToColor {arg id;
-	if (id.isNil) {
-	^Color.black;
-	} {
-	^Color.hsv(id, 1, 1); // TODO: need better colour mapping strategy than this!
+	soundSourceTogglePlay {arg soundSource, buttValue;
+		case
+		{buttValue == 1} { soundSource.startPlaying(1) }  // enforce level?
+		{buttValue == 0} { soundSource.stopPlaying }
 	}
-	}*/
 
-	/*	control {arg key, value;
-	var color;
-	if (value == \reset) {color = defaultBackgroundColor} { color = this.mapIdToColor(value) };
-	paramButtonDict[key].background_(color);
-	}*/
+	makeSharedControlPane {
+		var megaphoneControlRows, soundSourceControlRows, megaphoneControlPane;
+		megaphoneControlRows = remoteMegaphones.collect{arg remoteMegaphone;
+			this.makeMegaphoneSharedControlRow(remoteMegaphone);
+		};
+		soundSourceControlRows = remoteSoundSources.collect{arg remoteSoundSource;
+			this.makeSoundSourceSharedControlRow(remoteSoundSource);
+		};
+		megaphoneControlPane = View().layout_(
+			VLayout(*megaphoneControlRows ++ soundSourceControlRows)
+			.spacing_(0)
+			.margins_(0)
+		);
+		^megaphoneControlPane;
+	}
+
+	makeMegaphoneSharedControlRow {arg megaphone;
+		var rows, sharedControlPane;
+		megaphoneParamFuncArray = [
+			[
+				\positionControlledBy,
+				"pos",
+				{ megaphone.takeControlOfPosition },
+				{ megaphone.relinquishControlOfPosition }
+			],
+			[
+				\recordingControlledBy,
+				"rec",
+				{ megaphone.takeControlOfRecording },
+				{ megaphone.relinquishControlOfRecording }
+			],
+			[
+				\playbackControlledBy,
+				"play",
+				{ megaphone.takeControlOfPlayback },
+				{ megaphone.relinquishControlOfPlayback }
+			],
+			[
+				\volumeControlledBy,
+				"vol",
+				{ megaphone.takeControlOfVolume },
+				{ megaphone.relinquishControlOfPlayVolume }
+			]
+		];
+		rows = megaphoneParamFuncArray.collect{arg paramFuncArray;
+			var key, paramName, takeControlFunc, relinquishControlFunc;
+			# key, paramName, takeControlFunc, relinquishControlFunc = paramFuncArray;
+			this.makeMegaphoneParamRow(key, paramName, takeControlFunc, relinquishControlFunc)};
+		sharedControlPane = View(nil, Rect(0, 0, 50, 100));
+		^sharedControlPane.layout_(HLayout(*rows).spacing_(4).margins_(0));
+	}
+
+	makeMegaphoneParamRow {arg key, paramName, takeControlFunc, relinquishControlFunc;
+		var paramButton, rButton, controllingColorView;
+		paramButton = Button()
+		.fixedSize_(Size(43, 26))
+		.states_([[paramName]])
+		.action_(takeControlFunc)
+		.background_(Color.black); // default background color
+		rButton = Button()
+		.fixedSize_(Size(23, 26))
+		.states_([["r"]])
+		.action_(relinquishControlFunc);
+		controllingColorView = View()
+		.fixedSize_(Size(43, 26))
+		^View().layout_(HLayout(*[paramButton, rButton]).spacing_(0).margins_(0))
+	}
+
+	makeSoundSourceSharedControlRow {arg soundSource;
+		var rows, sharedControlPane;
+		soundSourceParamButtonDict = IdentityDictionary.new;
+		soundSourceParamFuncArray = [
+			[
+				\playbackControlledBy,
+				"play",
+				{ soundSource.takeControlOfPlayback },
+				{ soundSource.relinquishControlOfPlayback }
+			],
+			[
+				\volumeControlledBy,
+				"vol",
+				{ soundSource.takeControlOfVolume },
+				{ soundSource.relinquishControlOfPlayVolume }
+			]
+		];
+		rows = soundSourceParamFuncArray.collect{arg paramFuncArray;
+			var key, paramName, takeControlFunc, relinquishControlFunc;
+			# key, paramName, takeControlFunc, relinquishControlFunc = paramFuncArray;
+			this.makeSoundSourceParamRow(key, paramName, takeControlFunc, relinquishControlFunc)};
+		sharedControlPane = View(nil, Rect(0, 0, 50, 100));
+		^sharedControlPane.layout_(HLayout(*rows).spacing_(4).margins_(0));
+	}
+
+	makeSoundSourceParamRow {arg key, paramName, takeControlFunc, relinquishControlFunc;
+		var paramButton, rButton, controllingColorView;
+		paramButton = Button()
+		.fixedSize_(Size(43, 26))
+		.states_([[paramName]])
+		.action_(takeControlFunc)
+		.background_(Color.black); // default background color
+		soundSourceParamButtonDict.put(key, paramButton); // hold this for later use
+		rButton = Button()
+		.fixedSize_(Size(23, 26))
+		.states_([["r"]])
+		.action_(relinquishControlFunc);
+		controllingColorView = View()
+		.fixedSize_(Size(43, 26))
+		^View().layout_(HLayout(*[paramButton, rButton]).spacing_(0).margins_(0))
+	}
 
 }
-
-/*makeGlobalRow {
-Button()
-.states_([["all"]])
-.action({})
-}
-
-makeGlobalCol {
-
-}
-
-makeGUI {
-gui = View(nil, Rect(0, 0, 500, 200));
-gui.layout_(HLayout(*megaphones.collect{arg megaphone; megaphone.gui.mainView}));
-gui.front.alwaysOnTop;
-}
-
-/*	[\controlledBy, "all", { megaphone.takeControl }, { megaphone.relinquishControl } ],
-
-megaphones.do {
-
-}*/
-
-}*/
