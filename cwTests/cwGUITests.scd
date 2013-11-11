@@ -1,7 +1,9 @@
 l = CWLaptop(0);
 n = CWLaptop(1);
 
-l.remoteMegaphones[0].takeControlOfPlayback
+l.utopian.node.addrBook.peers.printAll;"";
+l.remoteMegaphones[0].isOnline
+takeControlOfPlayback
 l.remoteMegaphones[0].takeControlOfPosition
 l.remoteMegaphones[0].startPlaying(100)
 l.remoteMegaphones[0].stopPlaying

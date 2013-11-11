@@ -40,6 +40,7 @@ JackAudioDriver::ProcessGraphAsyncMaster: Process error
 l = CWLocalSoundSource(0, "/Users/grahambooth/Desktop/Megaphone/china_soundfiles/china_announcements_edited/_chosen/");
 // b. set up remote sound source (remote interface to local sound source)
 d = NMLDecentralisedNode(doWhenMeAdded: {\done.postln; t = CWRemoteSoundSource(0, d) });
+t.isOnline;
 t.startPlaying(0, 1);
 t.stopPlaying;
 t.setPlayVolume(0.1);
