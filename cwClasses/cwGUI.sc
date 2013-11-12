@@ -2,11 +2,11 @@ CWLaptop {
 
 	// one utopian, many remote objects (megaphones and sound sources)
 
-	var index, <name, <utopian, <remoteMegaphones, <remoteSoundSources, <remoteLaptops, <gui;
-	// index won't make sense in the end
+	var index, pathToSoundFiles;
+	var <name, <utopian, localSoundSource, <remoteMegaphones, <remoteSoundSources, <remoteLaptops, <gui;
 
-	*new {arg index;
-		^super.newCopyArgs(index).init;
+	*new {arg index, pathToSoundFiles;
+		^super.newCopyArgs(index, pathToSoundFiles).init;
 	}
 
 	init {
@@ -21,24 +21,16 @@ CWLaptop {
 		// name the laptop (for ease of recongition in the addrBook)
 		name = 'laptop' ++ index;
 		utopian.node.register(name);
+		// add local sound source:
+		localSoundSource = CWLocalSoundSource(index, pathToSoundFiles); // use same index as laptop here
 		// add megaphones:
 		remoteMegaphones = 5.collect{arg index;
 			CWRemoteMegaphone(index, utopian.node);
 		};
-/*		remoteMegaphones.do{arg remoteMegaphone;
-			remoteMegaphone.sharedControlSpace.addDependant({arg a, b, c, d;
-				[remoteMegaphone.name, a, b, c, d].postln;
-			})
-		};*/
 		// add sound sources:
 		remoteSoundSources = 2.collect{arg index;
 			CWRemoteSoundSource(index, utopian.node);
 		};
-/*		remoteSoundSources.do{arg remoteSoundSource;
-			remoteSoundSource.sharedControlSpace.addDependant({arg a, b, c, d;
-				[remoteSoundSource.name, a, b, c, d].postln;
-			})
-		};*/
 		// add laptops:
 		remoteLaptops = 2.collect{arg index;
 			CWRemoteLaptop(index, utopian.node);
@@ -51,7 +43,7 @@ CWLaptop {
 
 CWRemoteLaptop {
 
-	var index, <node, <name, <dataspace;
+	var <index, <node, <name, <dataspace;
 
 	*new {arg index, node;
 		^super.newCopyArgs(index, node).initRemoteLaptop;
@@ -71,21 +63,22 @@ CWRemoteLaptop {
 CWGUI {
 	// draw the expected number of megaphones
 	// have a colour for online, color for offline
-	var remoteMegaphones, remoteSoundSources, remoteLaptops, index;
+	var remoteMegaphones, remoteSoundSources, remoteLaptops, thisLaptopIndex;
 	var <node;
 	var devicePositionDict;
-	var onlineColor, offlineColor, playColor, recColor, stopColor;
+	var laptopColors, onlineColor, offlineColor, playColor, recColor, stopColor;
 	var guiSize, displayPaneSize, controlPaneSize, sharedControlPaneSize;
 	var soundSourceSize, megaphoneSize, megaphoneLength, megaphoneMicSize, megaphoneHornSize, laptopSize;
 	var megaphoneParamFuncArray, <megaphoneParamButtonDict;
 	var soundSourceParamFuncArray, <soundSourceParamButtonDict;
 	var defaultBackgroundColor;
 
-	*new {arg remoteMegaphones, remoteSoundSources, remoteLaptops, index;
-		^super.newCopyArgs(remoteMegaphones, remoteSoundSources, remoteLaptops, index).init;
+	*new {arg remoteMegaphones, remoteSoundSources, remoteLaptops, thisLaptopIndex;
+		^super.newCopyArgs(remoteMegaphones, remoteSoundSources, remoteLaptops, thisLaptopIndex).init;
 	}
 
 	init {
+		laptopColors = [Color.magenta, Color.cyan];
 		onlineColor = Color.blue;
 		offlineColor = Color.grey;
 		playColor = Color.green;
@@ -116,7 +109,7 @@ CWGUI {
 
 	makeGUI {
 		var gui, displayPane, controlPane, sharedControlPane, yPos;
-		yPos = index * guiSize.height.postln;
+		yPos = thisLaptopIndex * guiSize.height;
 		gui = View(nil, Rect(0, yPos, guiSize.width, guiSize.height));
 		displayPane = this.makeDeviceDisplayPane.fixedSize_(displayPaneSize);
 		controlPane = this.makeControlPane.fixedSize_(controlPaneSize).background_(Color.yellow(alpha:0.2));
@@ -130,7 +123,6 @@ CWGUI {
 	}
 
 	// device pane:
-
 	makeDeviceDisplayPane {
 		var deviceDisplayPane;
 		deviceDisplayPane = UserView();
@@ -151,21 +143,23 @@ CWGUI {
 			};
 			// 2. draw sound sources:
 			remoteSoundSources.do{arg remoteSoundSource;
-				var xPos, yPos, isOnline, isPlaying, amplitude;
+				var xPos, yPos, isOnline, isPlaying, amplitude, soundSourceIndex;
 				xPos = devicePositionDict.at(remoteSoundSource.name).x.linlin(0, 1, 0, deviceDisplayPane.bounds.width);
 				yPos = devicePositionDict.at(remoteSoundSource.name).y.linlin(0, 1, 0, deviceDisplayPane.bounds.height);
 				isOnline = remoteSoundSource.isOnline;
 				isPlaying = remoteSoundSource.isPlaying;
 				//amplitude = remoteSoundSource.amplitude; // ignoring amp for now, only relevant for simulation
-				this.drawSoundSource(xPos, yPos, isOnline, isPlaying);
+				soundSourceIndex = remoteSoundSource.index;
+				this.drawSoundSource(xPos, yPos, isOnline, isPlaying, soundSourceIndex);
 			};
 			// 3. draw laptops
 			remoteLaptops.do{arg remoteLaptop;
-				var xPos, yPos, isOnline;
+				var xPos, yPos, isOnline, laptopIndex;
 				xPos = devicePositionDict.at(remoteLaptop.name).x.linlin(0, 1, 0, deviceDisplayPane.bounds.width);
 				yPos = devicePositionDict.at(remoteLaptop.name).y.linlin(0, 1, 0, deviceDisplayPane.bounds.height);
 				isOnline = remoteLaptop.isOnline;
-				this.drawLaptop(xPos, yPos, isOnline);
+				laptopIndex = remoteLaptop.index;
+				this.drawLaptop(xPos, yPos, isOnline, laptopIndex);
 			}
 		});
 		deviceDisplayPane.background_(Color.magenta(alpha:0.1));
@@ -252,7 +246,7 @@ CWGUI {
 		};
 	}
 
-	drawSoundSource {arg xPos, yPos, isOnline, isPlaying;
+	drawSoundSource {arg xPos, yPos, isOnline, isPlaying, soundSourceIndex;
 		var position, fillColor;
 		fillColor = if (isOnline) {
 			if (isPlaying) { playColor } { onlineColor } // play color overrides online color
@@ -260,14 +254,19 @@ CWGUI {
 			offlineColor
 		};
 		Pen.use{
-			// (val: soundSource.amplitude.linlin(0, 1, 1, 0.2)
+			var ovalRect;
+			ovalRect = Rect(soundSourceSize/2 * -1, soundSourceSize/2 * -1, soundSourceSize, soundSourceSize);
 			Pen.translate(xPos, yPos);
 			Pen.fillColor_(fillColor);
-			Pen.fillOval(Rect(soundSourceSize/2 * -1, soundSourceSize/2 * -1, soundSourceSize, soundSourceSize));
+			Pen.fillOval(ovalRect);
+			Pen.width_(4);
+			Pen.strokeColor_(laptopColors[soundSourceIndex]);
+			Pen.strokeOval(ovalRect);
+			Pen.stroke;
 		}
 	}
 
-	drawLaptop {arg xPos, yPos, isOnline;
+	drawLaptop {arg xPos, yPos, isOnline, laptopIndex;
 		var position, fillColor;
 		fillColor = if (isOnline) {
 			onlineColor
@@ -276,9 +275,15 @@ CWGUI {
 		};
 		Pen.use{
 			// (val: soundSource.amplitude.linlin(0, 1, 1, 0.2)
+			var rectRect;
+			rectRect = Rect(laptopSize/2 * -1, laptopSize/2 * -1, laptopSize, laptopSize);
 			Pen.translate(xPos, yPos);
 			Pen.fillColor_(fillColor);
-			Pen.fillRect(Rect(laptopSize/2 * -1, laptopSize/2 * -1, laptopSize, laptopSize));
+			Pen.fillRect(rectRect);
+			Pen.width_(4);
+			Pen.strokeColor_(laptopColors[laptopIndex]);
+			Pen.strokeRect(rectRect);
+			Pen.stroke;
 		}
 	}
 
@@ -295,7 +300,7 @@ CWGUI {
 			.spacing_(0)
 			.margins_(0)
 		);
-		^megaphoneControlPane.postln;
+		^megaphoneControlPane;
 	}
 
 	makeMegaphoneControlRow {arg megaphone;
@@ -348,7 +353,7 @@ CWGUI {
 	}
 
 	soundSourceTogglePlay {arg soundSource, buttValue, bufferNumber;
-		bufferNumber.postln;
+		bufferNumber;
 		case
 		{buttValue == 1} { soundSource.startPlaying(bufferNumber) }  // enforce level?
 		{buttValue == 0} { soundSource.stopPlaying }
