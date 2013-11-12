@@ -333,19 +333,24 @@ CWGUI {
 	}
 
 	makeSoundSourceControlRow {arg soundSource;
-		var soundSourceControlRow;
+		var soundSourceControlRow, bufferNumber = 0;
 		soundSourceControlRow = View().layout_(HLayout(
 			StaticText().string_(soundSource.name),
 			Button()
-			.states_([["play"]])
-			.action_({arg butt; this.soundSourceTogglePlay(soundSource, butt.value)});
+			.states_([["play", Color.black, Color.red(alpha:0.1)], ["play", Color.black, Color.green(alpha:0.1)]])
+			.action_({arg butt; this.soundSourceTogglePlay(soundSource, butt.value, bufferNumber)}),
+			NumberBox()
+			.action_( {arg box; bufferNumber = box.value } ),
+			NumberBox()
+			.action_( {arg box; soundSource.setPlayVolume(box.value) } ),
 		));
 		^soundSourceControlRow;
 	}
 
-	soundSourceTogglePlay {arg soundSource, buttValue;
+	soundSourceTogglePlay {arg soundSource, buttValue, bufferNumber;
+		bufferNumber.postln;
 		case
-		{buttValue == 1} { soundSource.startPlaying(1) }  // enforce level?
+		{buttValue == 1} { soundSource.startPlaying(bufferNumber) }  // enforce level?
 		{buttValue == 0} { soundSource.stopPlaying }
 	}
 

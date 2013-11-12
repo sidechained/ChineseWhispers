@@ -62,74 +62,88 @@ def init_server():
 	st.start()
 
 def init_device():
-    deviceOperations = [
-        ['position', 'PWM', 'P9_16', 60 ],
-        ['record', 'GPIO', 'P9_27', None ],
-        ['play', 'GPIO', 'P9_12', None ],
-        ['playVolume', 'PWM', 'P9_22', 20000 ]
-        ]
     for operation in deviceOperations:
         operationName = operation[0]
         pinMode = operation[1]
         pin = operation[2]
-	param = operation[3]
-        init_actuation_operation(operationName, pinMode, pin, param)
+        init_actuation_operation(operationName, pinMode, pin)
 
 # actuation functions:
-def init_actuation_operation(operationName, pinMode, pin, param):
+def init_actuation_operation(operationName, pinMode, pin):
 	if pinMode == 'GPIO':
 		init_gpio_pin(operationName, pin)
 	elif pinMode == 'PWM':
-	 	init_pwm_pin(operationName, pin, param)
+	 	init_pwm_pin(operationName, pin)
 
 def init_gpio_pin(operationName, pin):
     recvOscPath = pythonOscPath + '/' + operationName
-    print recvOscPath + " " + pin
+    # initialise the pin
+    print "initialising" + " " + recvOscPath + " " + "GPIO '{0}'".format(pin)
+    if bbbExists == True:
+        GPIO.setup(pin, GPIO.OUT)
 
+    # setup an OSC handler for the pin       
     def gpio_pin_handler(addr, tags, msg, source):  # how can we pass in our own values here?
         value = int(msg[0]) # value should always be a single value, so we just take the first in the array
-        pinIsInitialised = pin in initialisedPins
-        if not pinIsInitialised:
-            print "initialising GPIO '{0}'".format(pin)
-            initialisedPins.append(pin)
-            if bbbExists == True:
-                GPIO.setup(pin, GPIO.OUT)
         print "setting GPIO '{0}' '{1}'".format(pin, value)
         if bbbExists == True:
             GPIO.output(pin, value) # what if the value provided is not an integer, should we enforce this here?
 
+    # add the handler to the server's existing handlers        
     pythonServer.addMsgHandler(recvOscPath, gpio_pin_handler)
             
-def init_pwm_pin(operationName, pin, param):
+def init_pwm_pin(operationName, pin):
     recvOscPath = pythonOscPath + '/' + operationName
-    print recvOscPath + " " + pin
-
+    # initialise the pin
+    initialDutyCycle = initialPWMValuesDict[operationName]['initialDutyCycle']
+    initialFrequency = initialPWMValuesDict[operationName]['initialFrequency']
+    print "initialising" + " " + recvOscPath + " " + "PWM '{0}' '{1}' '{2}'".format(pin, initialDutyCycle, initialFrequency)
+    
+    if bbbExists == True:
+        PWM.start(pin, initialDutyCycle, initialFrequency)
+        
+	# setup an OSC handler for the pin
     def pwm_pin_handler(addr, tags, msg, source): # how can we pass in our own values here?
         value = msg[0] # value should always be a single value, so we just take the first in the array
-        if operationName == 'position':
-            value = scale(value, (0., 180.), (4., 13.)) # convert degrees to values the servo understands 
-            print"remapped position to '{0}'".format(value)
-        if operationName == 'playVolume':
-            value = scale(value, (0., 1.), (0., 100.)) # preferably remap more exponetially here
-            print"remapped volume to '{0}'".format(value)
-        pinIsInitialised = pin in initialisedPins
-        # print initialisedPins
-        if not pinIsInitialised:
-            	print "starting PWM '{0}' '{1}'".format(pin, value, param)
-            	initialisedPins.append(pin)
-           	if bbbExists == True:
-			PWM.start(pin, value, param)
-        else:
-            print "setting PWM '{0} '{1}'".format(pin, value)
-            if bbbExists == True:
-                PWM.set_duty_cycle(pin, value)
+        print "setting PWM '{0} '{1}'".format(pin, value)
+        if bbbExists == True:
+            checkForRemap(operationName, value)
+            PWM.set_duty_cycle(pin, value)
 
+    # add the handler to the server's existing handlers
     pythonServer.addMsgHandler(recvOscPath, pwm_pin_handler)
+            
+def checkForRemap(operationName, value):
+    if operationName == 'position':
+        value = remapPosition(value)
+        print"remapped position to '{0}'".format(value)
+    if operationName == 'playVolume':
+        value = remapVolume(value)
+        print"remapped volume to '{0}'".format(value)
+    return value
+                
+def remapPosition(value):
+    value = scale(value, (0., 180.), (4.5, 13.5)) # convert degrees to values the servo understands
+    return value
+
+def remapVolume(value):
+    value = scale(value, (0., 1.), (0., 100.)) # preferably remap more exponetially here
+    return value
 
 def scale(val, src, dst):
     return ((val - src[0]) / (src[1]-src[0])) * (dst[1]-dst[0]) + dst[0]
-    
+
 # main:
+
+deviceOperations = [
+        ['position', 'PWM', 'P9_16' ],
+        ['record', 'GPIO', 'P9_27'],
+        ['play', 'GPIO', 'P9_12'],
+        ['playVolume', 'PWM', 'P9_22']
+        ]
+
+initialPWMValuesDict = {'position': {'initialDutyCycle': 0, 'initialFrequency': 60}, 'playVolume': {'initialDutyCycle':1, 'initialFrequency':20000} } # will be remapped
+
 parse_command_line_options()
 init_server()
 init_device()

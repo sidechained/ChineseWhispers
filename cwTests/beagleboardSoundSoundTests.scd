@@ -42,8 +42,14 @@ l = CWLocalSoundSource(0, "/Users/grahambooth/Desktop/Megaphone/china_soundfiles
 d = NMLDecentralisedNode(doWhenMeAdded: {\done.postln; t = CWRemoteSoundSource(0, d) });
 t.isOnline;
 t.startPlaying(0, 1);
+t.startPlaying(2, 1);
+t.startPlaying(3, 1);
+t.startPlaying(4, 1);
+t.startPlaying(9, 1);
+t.startPlaying(10, 1);
 t.stopPlaying;
 t.setPlayVolume(0.1);
+t.setPlayVolume(1);
 // we can check if the local sound source is online, is recording or is playing
 t.isOnline; // would be useful here to kill the CWLocalMegaphone and check again
 t.isPlaying;
