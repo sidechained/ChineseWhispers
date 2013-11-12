@@ -107,7 +107,7 @@ def init_pwm_pin(operationName, pin):
         value = msg[0] # value should always be a single value, so we just take the first in the array
         print "setting PWM '{0} '{1}'".format(pin, value)
         if bbbExists == True:
-            checkForRemap(operationName, value)
+            value = checkForRemap(operationName, value)
             PWM.set_duty_cycle(pin, value)
 
     # add the handler to the server's existing handlers
@@ -123,7 +123,7 @@ def checkForRemap(operationName, value):
     return value
                 
 def remapPosition(value):
-    value = scale(value, (0., 180.), (4.5, 13.5)) # convert degrees to values the servo understands
+    value = scale(value, (0., 180.), (minPosition, maxPosition)) # convert degrees to values the servo understands
     return value
 
 def remapVolume(value):
@@ -135,6 +135,9 @@ def scale(val, src, dst):
 
 # main:
 
+minPosition = 4.5
+maxPosition = 13.5
+
 deviceOperations = [
         ['position', 'PWM', 'P9_16' ],
         ['record', 'GPIO', 'P9_27'],
@@ -142,7 +145,7 @@ deviceOperations = [
         ['playVolume', 'PWM', 'P9_22']
         ]
 
-initialPWMValuesDict = {'position': {'initialDutyCycle': 0, 'initialFrequency': 60}, 'playVolume': {'initialDutyCycle':1, 'initialFrequency':20000} } # will be remapped
+initialPWMValuesDict = {'position': {'initialDutyCycle': minPosition, 'initialFrequency': 60}, 'playVolume': {'initialDutyCycle':1, 'initialFrequency':20000} } # will be remapped
 
 parse_command_line_options()
 init_server()

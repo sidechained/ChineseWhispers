@@ -37,10 +37,12 @@ JackAudioDriver::ProcessGraphAsyncMaster: Process error
 // 5. sound source test (networked)
 // a. set up local soundsource:
 // - server will be passed in by utopian
-l = CWLocalSoundSource(0, "/Users/grahambooth/Desktop/Megaphone/china_soundfiles/china_announcements_edited/_chosen/");
+l = CWLocalSoundSource(0, "/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/");
 // b. set up remote sound source (remote interface to local sound source)
 d = NMLDecentralisedNode(doWhenMeAdded: {\done.postln; t = CWRemoteSoundSource(0, d) });
 t.isOnline;
+d.addrBook.peers
+
 t.startPlaying(0, 1);
 t.startPlaying(2, 1);
 t.startPlaying(3, 1);

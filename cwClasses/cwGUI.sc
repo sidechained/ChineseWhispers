@@ -333,7 +333,7 @@ CWGUI {
 
 	megaphoneTogglePlay {arg buttValue, megaphone;
 		case
-		{buttValue == 1} { megaphone.startPlaying(1) } // enforce level?
+		{buttValue == 1} { megaphone.startPlaying }
 		{buttValue == 0} { megaphone.stopPlaying }
 	}
 
