@@ -1,0 +1,1 @@
+CWLocalSoundSource(thisProcess.argv[0], "/home/debian/ChineseWhispers/soundfiles");

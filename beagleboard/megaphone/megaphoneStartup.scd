@@ -1,0 +1,1 @@
+CWLocalMegaphone(thisProcess.argv[0]);

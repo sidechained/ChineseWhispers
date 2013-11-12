@@ -8,6 +8,8 @@
 
 - added many items from Crewe Day 2 (10th November)
 DONE: remapped volume and position parameters in python (4 as the starting pos, 13 is the ending position, 8.5 is the midway position)
+DONE: adjust calibration forwards a little (4.5 to 13.5), some servos grind at the current zero point 
+DONE: pushed position remap 0.5 forwards (4.5 to 13)
 TODO: implement online checks in CWRemoteMegaphone (before being able to play, set position, etc)
 DONE: fixed problem that initial volume is never sent
 TODO: modify set position code so that a speed can be specified (go to this position in this amount of time)
@@ -15,7 +17,7 @@ TODO: rewrite python script to initialise pins on startup, not on first call (in
 TODO: python echo (to diagnose problems)
 TODO: fix megaphone offset in gui
 TODO: keep volume level when re-playing. take value from gui?
-TODO: adjust calibration forwards a little (5 to 14?), some servos grind at the current zero point 
+
 TODO: implement startup script for megaphones (when code is solid)
 
 - TODO: rename classes - local and remote depends on perspective - better to call Megaphone and MegaphoneInterface
