@@ -29,8 +29,8 @@ mkdir /home/debian/.local/share/SuperCollider/Extensions/Utopia
     scp /Users/grahambooth/Desktop/Utopia/github/Utopia/classes/NMLAddressing.sc ${USERNAME}@${HOSTNAME}:/home/debian/.local/share/SuperCollider/Extensions/Utopia;
     scp /Users/grahambooth/Desktop/Utopia/github/Utopia/classes/NMLRelays.sc ${USERNAME}@${HOSTNAME}:/home/debian/.local/share/SuperCollider/Extensions/Utopia;
     scp /Users/grahambooth/Desktop/Utopia/github/Utopia/classes/NMLUtopian.sc ${USERNAME}@${HOSTNAME}:/home/debian/.local/share/SuperCollider/Extensions/Utopia;
-# scp /Users/grahambooth/Desktop/Megaphone/github/beagleboard/cwMegaphoneBoot.sh debian@192.168.2.1:/etc/init.d;
-# update-rc.d /etc/init.d/cwMegaphoneBoot.sh defaults
+    scp /Users/grahambooth/Desktop/Megaphone/github/beagleboard/cwMegaphoneBoot.sh debian@192.168.2.1:/etc/init.d;
+    /usr/sbin/update-rc.d /etc/init.d/cwMegaphoneBoot.sh defaults
 done
 
 # presumes ssh keys are set up, if not on mac:
