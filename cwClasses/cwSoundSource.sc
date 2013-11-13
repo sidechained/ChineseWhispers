@@ -110,6 +110,7 @@ CWRemoteSoundSource {
 	// actuation:
 
 	startPlaying {arg bufferNumber, volume;
+		if (this.isPlaying) { this.stopPlaying; inform("stopping existing sound")};
 		node.addrBook.sendName(name, \startPlaying, bufferNumber, volume);
 	}
 
@@ -185,19 +186,19 @@ CWLocalSoundSource : CWSoundSource {
 		OSCFunc({arg msg;
 			var bufferNumber, initialVolume;
 			# bufferNumber, initialVolume = msg.drop(1);
-			[\startPlaying].postln;
+			msg.postln;
 			this.doStartPlaying(bufferNumber, initialVolume);
 		}, '\startPlaying', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
-			[\stopPlaying].postln;
+			msg.postln;
 			this.doStopPlaying;
 		}, '\stopPlaying', recvPort: utopian.node.me.addr.port);
 
 		OSCFunc({arg msg;
 			var volume;
 			# volume = msg.drop(1);
-			[\setPlayVolume].postln;
+			msg.postln;
 			this.doSetPlayVolume(volume);
 		}, '\setPlayVolume', recvPort: utopian.node.me.addr.port);
 
@@ -212,7 +213,6 @@ CWLocalSoundSource : CWSoundSource {
 		dataspace.put(\isPlaying, false);
 		super.doStopPlaying;
 	}
-
 
 }
 
