@@ -155,11 +155,6 @@ CWRemoteMegaphone {
 		dataspace = OSCDataSpace(node.addrBook, node.me, oscPath: oscPath);
 	}
 
-	setPosition {arg position;
-		currentAngle = position;
-		node.addrBook.sendName(name, \setPosition, position);
-	}
-
 	faceLeft {arg position;
 		this.setPosition(0);
 	}
@@ -172,24 +167,53 @@ CWRemoteMegaphone {
 		this.setPosition(180);
 	}
 
+	setPosition {arg position;
+		if (this.isOnline) {
+			currentAngle = position;
+			node.addrBook.sendName(name, \setPosition, position);
+		} {
+			inform("% is not online".format(name));
+		}
+	}
+
 	startRecording {
-		node.addrBook.sendName(name, \startRecording);
+		if (this.isOnline) {
+			node.addrBook.sendName(name, \startRecording);
+		} {
+			inform("% is not online".format(name));
+		}
 	}
 
 	stopRecording {
-		node.addrBook.sendName(name, \stopRecording);
+		if (this.isOnline) {
+			node.addrBook.sendName(name, \stopRecording);
+		} {
+			inform("% is not online".format(name));
+		}
 	}
 
 	startPlaying {arg initialVolume;
-		node.addrBook.sendName(name, \startPlaying, initialVolume);
+		if (this.isOnline) {
+			node.addrBook.sendName(name, \startPlaying, initialVolume);
+		} {
+			inform("% is not online".format(name));
+		}
 	}
 
 	stopPlaying {
-		node.addrBook.sendName(name, \stopPlaying);
+		if (this.isOnline) {
+			node.addrBook.sendName(name, \stopPlaying);
+		} {
+			inform("% is not online".format(name));
+		}
 	}
 
 	setPlayVolume {arg volume;
-		node.addrBook.sendName(name, \setPlayVolume, volume);
+		if (this.isOnline) {
+			node.addrBook.sendName(name, \setPlayVolume, volume);
+		} {
+			inform("% is not online".format(name));
+		}
 	}
 
 	//

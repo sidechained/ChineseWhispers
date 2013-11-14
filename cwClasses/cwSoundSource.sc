@@ -110,16 +110,28 @@ CWRemoteSoundSource {
 	// actuation:
 
 	startPlaying {arg bufferNumber, volume;
-		if (this.isPlaying) { this.stopPlaying; inform("stopping existing sound")};
-		node.addrBook.sendName(name, \startPlaying, bufferNumber, volume);
+		if (this.isOnline) {
+			if (this.isPlaying) { this.stopPlaying; inform("stopping existing sound")};
+			node.addrBook.sendName(name, \startPlaying, bufferNumber, volume);
+		} {
+			inform("% is not online".format(name));
+		}
 	}
 
 	stopPlaying {
-		node.addrBook.sendName(name, \stopPlaying);
+		if (this.isOnline) {
+			node.addrBook.sendName(name, \stopPlaying);
+		} {
+			inform("% is not online".format(name));
+		}
 	}
 
 	setPlayVolume {arg volume;
-		node.addrBook.sendName(name, \setPlayVolume, volume);
+		if (this.isOnline) {
+			node.addrBook.sendName(name, \setPlayVolume, volume);
+		} {
+			inform("% is not online".format(name));
+		}
 	}
 
 	// check state of local megaphone
