@@ -85,9 +85,9 @@ CWGUI {
 		recColor = Color.red;
 		stopColor = Color.black;
 		guiSize = Size(1024, 300);
-		displayPaneSize = Size(guiSize.width/3, guiSize.height);
-		controlPaneSize = Size(guiSize.width/3, guiSize.height);
-		sharedControlPaneSize = Size(guiSize.width/3, guiSize.height);
+		displayPaneSize = Size(guiSize.width/2, guiSize.height);
+		controlPaneSize = Size(guiSize.width/2, guiSize.height);
+		//sharedControlPaneSize = Size(guiSize.width/3, guiSize.height);
 		soundSourceSize = displayPaneSize.width/10;
 		megaphoneSize = displayPaneSize.width/10;
 		megaphoneMicSize = megaphoneSize/10;
@@ -169,9 +169,9 @@ CWGUI {
 
 	drawMegaphone {arg xPos, yPos, isOnline, isRecording, isPlaying, currentAngle; // isTurning?
 		Pen.use{
-			var start, end, color;
+			var start, end, onlineRecColor;
 			// mag = 5;
-			color = if (isOnline) {
+			onlineRecColor = if (isOnline) {
 				if (isPlaying) { playColor } {
 					// if not playing, check if recording
 					if (isRecording) { recColor } {
@@ -182,7 +182,7 @@ CWGUI {
 					offlineColor
 				};
 			};
-			this.drawCentreBlob(xPos, yPos, color);
+			this.drawCentreBlob(xPos, yPos, onlineRecColor);
 			// draw centre blob (mic stand)
 			this.drawBody(xPos, yPos, currentAngle);
 			this.drawHorn(xPos, yPos, currentAngle);
@@ -190,12 +190,17 @@ CWGUI {
 		}
 	}
 
-	drawCentreBlob {arg x, y, color;
-		var blobSize = 4;
+	drawCentreBlob {arg x, y, onlineRecColor;
+		var blobSize = 8;
 		Pen.use{
+			var ovalRect = Rect(blobSize/2 * -1, blobSize/2 * -1, blobSize, blobSize);
 			Pen.translate(x, y);
-			Pen.fillColor_(color);
-			Pen.fillOval(Rect(blobSize/2 * -1, blobSize/2 * -1, blobSize, blobSize));
+			Pen.fillColor_(onlineRecColor);
+			Pen.fillOval(ovalRect);
+			// Pen.width_(2);
+			// Pen.strokeColor_(laptopColors[controllingPlayerIndex]);
+			// Pen.strokeOval(ovalRect);
+			// Pen.stroke;
 		}
 	}
 
@@ -213,12 +218,13 @@ CWGUI {
 	}
 
 	drawHorn {arg x, y, currentAngle;
-		// translate to start:
+
 		Pen.use {
-			var start, up, down;
+			var end, up, down;
 			Pen.translate(x, y);
-			start = Polar(megaphoneSize / 2, currentAngle).asComplex.asPoint;
-			Pen.translate(start.x, start.y);
+			// translate to end:
+			end = Polar(megaphoneSize / 2, currentAngle + ((2pi/2)%2pi)).asComplex.asPoint;
+			Pen.translate(end.x, end.y);
 			up = Polar(megaphoneHornSize / 2, currentAngle + ((2pi/4)%2pi)).asComplex.asPoint;
 			Pen.translate(up.x, up.y);
 			down = Polar(megaphoneHornSize, currentAngle - ((2pi/4)%2pi)).asComplex.asPoint;
@@ -230,11 +236,11 @@ CWGUI {
 
 	drawMic {arg x, y, currentAngle;
 		Pen.use {
-			var end, up, down;
+			var start, up, down;
 			Pen.translate(x, y);
-			// translate to end:
-			end = Polar(megaphoneSize / 2, currentAngle + ((2pi/2)%2pi)).asComplex.asPoint;
-			Pen.translate(end.x, end.y);
+			// translate to start:
+			start = Polar(megaphoneSize / 2, currentAngle).asComplex.asPoint;
+			Pen.translate(start.x, start.y);
 			// translate along 90 degrees (up)
 			up = Polar(megaphoneMicSize / 2, currentAngle + ((2pi/4)%2pi)).asComplex.asPoint;
 			Pen.translate(up.x, up.y);
@@ -307,8 +313,11 @@ CWGUI {
 		var megaphoneControlRow;
 		megaphoneControlRow = View().layout_(HLayout(
 			StaticText().string_(megaphone.name),
-			NumberBox()
-			.action_( {arg box; megaphone.setPosition(box.value) } ),
+			Slider()
+			.action_( {arg box; megaphone.setPosition(box.value * 180) } )
+			.minWidth_(70)
+			.maxHeight_(25)
+			.orientation_(\horizontal),
 			Button()
 			.states_([["rec", Color.black, Color.red(alpha:0.1)], ["rec", Color.black, Color.green(alpha:0.1)]])
 			.action_({arg butt; this.megaphoneToggleRecord(butt.value, megaphone) }
@@ -316,8 +325,11 @@ CWGUI {
 			Button()
 			.states_([["play", Color.black, Color.red(alpha:0.1)], ["play", Color.black, Color.green(alpha:0.1)]])
 			.action_( {arg butt; this.megaphoneTogglePlay(butt.value, megaphone) }),
-			NumberBox()
-			.action_( {arg box; megaphone.setPlayVolume(box.value) } ),
+			Slider()
+			.action_( {arg box; megaphone.setPlayVolume(box.value) } )
+			.minWidth_(70)
+			.maxHeight_(25)
+			.orientation_(\horizontal),
 		)
 		.spacing_(0)
 		.margins_(0)
@@ -346,8 +358,11 @@ CWGUI {
 			.action_({arg butt; this.soundSourceTogglePlay(soundSource, butt.value, bufferNumber)}),
 			NumberBox()
 			.action_( {arg box; bufferNumber = box.value } ),
-			NumberBox()
-			.action_( {arg box; soundSource.setPlayVolume(box.value) } ),
+			Slider()
+			.action_( {arg box; soundSource.setPlayVolume(box.value) } )
+			.minWidth_(70)
+			.maxHeight_(25)
+			.orientation_(\horizontal),
 		));
 		^soundSourceControlRow;
 	}
