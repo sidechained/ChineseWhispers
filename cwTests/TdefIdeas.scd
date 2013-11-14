@@ -1,78 +1,43 @@
 // decisions, decisions:
+// - how to negotiate
+// - plan a rough score
+// - sound source needs to be louder (use proper speaker) and we need two of them, perhaps located behind the
+// - one sound source or two? A: two, each controlled by a different player (adapted code so as to only reference the local one
 
-// one sound source or two?
-// two is better, with independent control of each
-// code need to reference on the local one
+(
+// *** STARTUP ***
+~sfp = "/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/"; // MAKE SPECIFIC
+l = CWLaptop(0, ~sfp); // MAKE SPECIFIC
+// *** INIT SOUND FILE DICTIONARY ***
+// collect file durations
+~sfd = PathName(~sfp).files.collect{arg filePathName, fileIndex;
+	var sf, dur;
+	sf = SoundFile();
+	sf.openRead(filePathName.fullPath);
+};
+)
 
-l = CWLaptop(0, "/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/");
-m = CWLaptop(1, "/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/");
-l.utopian.node.addrBook.peers.printAll;"";
+// ***  SOUND FILE DICTIONARY: LOOK UP NAME OR DURATION OF A GIVEN SOUND FILE INDEX
+~sfd[0].name
+~sfd[0].dur
+)
 
-l.mySoundSource.index
-m.mySoundSource.index
-l.mySoundSource.startPlaying(5, 1)
-l.mySoundSource.stopPlaying(5, 1)
-m.mySoundSource.startPlaying(8, 1)
-m.mySoundSource.stopPlaying(8, 1)
-
-l
-
-// notes - sound source needs to be louder (use proper speaker)
+// *** CHECK NETWORK STATUS ***
+l.utopian.node.addrBook.peers.printAll;""; // check manually who is online
 
 // pathnames here:
 
-(
-~sfd = (
-	// a dictionary of soundfile names
-	// can be used to quickly lookup sound file names
-	// and their durations
-	0: name: "female_beijing_forbidden_city.wav", dur:
-	1:, name: "female_come_quickly_and_buy_one.wav", dur:
-	2:, name: "female_da_jia_distored_shop_announcement.wav", dur:
-	3:, name: "female_mai_piao.wav", dur:
-	4:, name: "female_prerecorded_shop_announcement.wav", dur:
-	5:, name: "male_gulou_shadow_show_echo_shortened.wav", dur:
-	6:, name: "male_mutianyu_great_wall.wav", dur:
-	7:, name: "male_street_megaphone_deep_voiced.wav", dur:
-	8:, name: "male_tasty_snacks_for_sale.wav", dur:
-	9:, name: "male_train_station_move_along1.wav", dur:
-	10:, name: "male_train_station_move_along2.wav", dur:
-)
-)
 
-(
-PathName("/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/").files.do{arg file;
-	file.postln;
-};"";
-)
 
-(
-[
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/female_beijing_forbidden_city.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/female_come_quickly_and_buy_one.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/female_da_jia_distored_shop_announcement.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/female_mai_piao.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/female_prerecorded_shop_announcement.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/male_gulou_shadow_show_echo_shortened.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/male_mutianyu_great_wall.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/male_street_megaphone_deep_voiced.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/male_tasty_snacks_for_sale.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/male_train_station_move_along1.wav",
-	"/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/male_train_station_move_along2.wav"
-].collect{arg pathName; f = SoundFile();
-	f.openRead(pathName);
-	f.duration;
-}
-)
+// *** QUICK RESETS ***
 
-// REMEMBER TO CHANGE NUMBER OF SOUND SOURCES, OR LET EACH PLAYER ACCESS THEIR OWN
-
-l.remoteSoundSources[0].startPlaying(8, 4)
-l.remoteSoundSources[0].stopPlaying
-
-l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.faceLeft;};
-
-// need a list of soundfiles up here somewhere
+l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.faceLeft;}; // ALL face left
+l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.faceRight;}; // ALL face right
+l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.faceForward;}; // ALL face forward
+l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.stopPlaying}; // ALL stop playing
+l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.stopRecording}; // ALL stop recording
+l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.setPlayVolume(0)}; // ALL mute
+l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.setPlayVolume(1)}; // ALL unmute
 
 (
 Tdef(\volley, {
@@ -80,10 +45,10 @@ Tdef(\volley, {
 	var soundFileNumber;
 	soundFileNumber = 1;
 	l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.stopRecording; remoteMegaphone.faceForward;};
-	l.remoteSoundSources[0].startPlaying(1, 1); // max volume
+	l.myRemoteSoundSource.startPlaying(1, 1); // max volume
 	l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.startRecording;};
 	4.wait; // or the full length of the soundfile - would be good to have these in an array
-	l.remoteSoundSources[0].stopPlaying;
+	l.myRemoteSoundSource.stopPlaying;
 	l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.stopRecording;};
 	1.wait;
 	1.do{
@@ -146,9 +111,9 @@ Tdef(\muteUnmuteRecord, {
 		};
 		d = {
 			fork {
-				l.remoteSoundSources[0].startPlaying(4, 1);
+				l.myRemoteSoundSource.startPlaying(4, 1);
 				10.wait;
-				l.remoteSoundSources[0].stopPlaying;
+				l.myRemoteSoundSource.stopPlaying;
 			}
 		};
 		[a, b, b, b, b, c, d].choose.value; // vary proportion of a to b to go from sparse to dense
@@ -250,10 +215,10 @@ Tdef(\leftToRight, {
 	6.do{arg i;
 		i.postln;
 		if (i == 0) {
-			l.remoteSoundSources[0].startPlaying((0..10).choose, 1);
+			l.myRemoteSoundSource.startPlaying((0..10).choose, 1);
 			l.remoteMegaphones[0].startRecording;
 			rrand(5, 8).wait;
-			l.remoteSoundSources[0].stopPlaying;
+			l.myRemoteSoundSource.stopPlaying;
 			l.remoteMegaphones[0].stopRecording;
 		} {
 			l.remoteMegaphones[i-1].setPosition(180 - (i * 30)); 0.5.wait;
@@ -322,7 +287,7 @@ Tdef(\rhythmicMovement).stop; l.remoteMegaphones.do{arg i; i.stopPlaying};
 
 (
 Tdef(\rhythmicMovementWithPlaying, {
-	l.remoteSoundSources[0].stopPlaying;
+	l.myRemoteSoundSource.stopPlaying;
 	l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.stopPlaying};
 	0.2.wait;
 	inf.do{arg i;
@@ -331,12 +296,12 @@ Tdef(\rhythmicMovementWithPlaying, {
 		chosenOne = l.remoteMegaphones.choose;
 		recOrPlay = [\record, \play].choose;
 		case
-		{ recOrPlay == \ssplay } { l.remoteSoundSources[0].startPlaying(10.rand, rrand(0.2, 1)); chosenOne.startRecording; }
+		{ recOrPlay == \ssplay } { l.myRemoteSoundSource.startPlaying(10.rand, rrand(0.2, 1)); chosenOne.startRecording; }
 		{ recOrPlay == \record } { chosenOne.startRecording; }
 		{ recOrPlay == \play } { chosenOne.startPlaying; chosenOne.setPlayVolume(1); };
 		([0.5, 0.75, 1, 1, 1, 0.5, 0.7, 0.1]) [i%8].wait;
 		case
-		{ recOrPlay == \ssplay } { l.remoteSoundSources[0].stopPlaying; chosenOne.stopRecording;}
+		{ recOrPlay == \ssplay } { l.myRemoteSoundSource.stopPlaying; chosenOne.stopRecording;}
 		{ recOrPlay == \record } { chosenOne.stopRecording; }
 		{ recOrPlay == \play } { chosenOne.stopPlaying; };
 		0.1.wait;
@@ -375,6 +340,6 @@ Tdef(\forwardMarch).stop; l.remoteMegaphones.do{arg i; i.stopPlaying};
 l.remoteMegaphones.do{arg remoteMegaphone; remoteMegaphone.setPosition(180)};
 //
 
-l.remoteSoundSources[0].startPlaying(4, 0.8);
-l.remoteSoundSources[0].stopPlaying
+l.myRemoteSoundSource.startPlaying(4, 0.8);
+l.myRemoteSoundSource.stopPlaying
 l.remoteMegaphones.do{arg i; i.stopPlaying; i.stopRecording; }

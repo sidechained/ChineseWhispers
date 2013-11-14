@@ -17,6 +17,10 @@ CWLaptop {
 		);
 	}
 
+	mySoundSource {
+		^remoteSoundSources.at(index);
+	}
+
 	doWhenMeAdded {
 		// name the laptop (for ease of recongition in the addrBook)
 		name = 'laptop' ++ index;
@@ -218,7 +222,6 @@ CWGUI {
 	}
 
 	drawHorn {arg x, y, currentAngle;
-
 		Pen.use {
 			var end, up, down;
 			Pen.translate(x, y);

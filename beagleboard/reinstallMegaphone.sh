@@ -10,9 +10,12 @@
 ## on beagleboard, add newly copied key to authorised_keys
 # cat id_dsa.pub >> authorized_keys
 
+
 # 2. post:run
 # sudo scp /Users/grahambooth/Desktop/Megaphone/github/beagleboard/megaphone/cwMegaphoneBoot.sh ${USERNAME}@${HOSTNAME}:/etc/init.d;
 # ssh -l ${USERNAME} ${HOSTNAME} "sudo /usr/sbin/update-rc.d cwMegaphoneBoot.sh defaults"
+
+# also cannot do this on startup: rm -r /etc/init.d/cwMegaphoneBoot.sh;
 
 # TODO: put script in separate file
 # TODO: specify megaphone number, change IP and megaphone number in megaphoneStartup.scd to that number
@@ -33,7 +36,7 @@ for HOSTNAME in ${HOSTS} ; do
 rm -r /home/debian/ChineseWhispers/;
 rm -r /home/debian/.local/share/SuperCollider/Extensions/ChineseWhispers;
 rm -r /home/debian/.local/share/SuperCollider/Extensions/Utopia;
-rm -r /etc/init.d/cwMegaphoneBoot.sh;
+
 
 # 2. create new directories;
 mkdir /home/debian/ChineseWhispers/;
