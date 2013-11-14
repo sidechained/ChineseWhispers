@@ -6,15 +6,18 @@
 
 (
 // *** STARTUP ***
-~sfp = "/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/"; // MAKE SPECIFIC
-l = CWLaptop(0, ~sfp); // MAKE SPECIFIC
+~sfp = "/Users/grahambooth/Desktop/Megaphone/beagleboard_soundfiles_final/soundfiles/"; // CHANGE to
+l = CWLaptop(0, ~sfp); // CHANGE TO
 // *** INIT SOUND FILE DICTIONARY ***
+~sfd = ();
 // collect file durations
-~sfd = PathName(~sfp).files.collect{arg filePathName, fileIndex;
+PathName(~sfp).files.do{arg filePathName, fileIndex;
 	var sf, dur;
 	sf = SoundFile();
 	sf.openRead(filePathName.fullPath);
+	~sfd.put(fileIndex, (name: filePathName.fileName, dur: sf.duration))
 };
+~sfd;
 )
 
 // ***  SOUND FILE DICTIONARY: LOOK UP NAME OR DURATION OF A GIVEN SOUND FILE INDEX
