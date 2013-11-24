@@ -150,3 +150,70 @@ Spacing Decisions
 // -but the remote versions do i.e. RemoteSoundSource
 // -SharedRemoteSoundSource
 // think of a simple case where a sound source is controlled by laptop 1, laptop 2 or no-one
+
+* Research file created during week in Crewe:
+
+// TODO: names of soundfiles, menu or buttons
+// TODO: controlled by colors
+// TODO: why does sound source stop responding?!?
+// TODO: when 
+
+Jonas Hummel c/o Martin Blain,
+MMU Cheshire Campus, Crewe Green Road
+CW1 5DU Crewe, Cheshire	
+
+*13 ss
+*11 m
+*15 m
+-14 m
+*16 m
+
+// 
+
+update-rc.d blah defaults
+
+update-rc.d -f  blah remove
+
+// get command line args in supercollider
+
+http://new-supercollider-mailing-lists-forums-use-these.2681727.n2.nabble.com/input-arguments-in-command-line-sclang-td7588602.html
+
+"killall python".unixCmd;
+"sudo python /home/debian/ChineseWhispers/code/megaphoneControl.py".unixCmd;
+
+// getting back a port
+
+lsof -i :5955	
+kill -9 PID
+
+// copy utopian off sound source
+
+/home/debian/.local/share/SuperCollider/Extensions
+
+c = SharedServer(\test, NetAddr("127.0.0.1", 51000), clientID: 0);
+
+NMLUtopian(topology: \decentralised, hasServer: true, seesServers: false, sharesSynthDefs: false, verbose: false);
+
+a = CWLocalSoundSource(0, "/home/debian/ChineseWhispers/soundfiles");
+
+
+jackd -R -d alsa -d hw:1,0 &
+sc3> a = CWLocalSoundSource(0, "/home/debian/ChineseWhispers/soundfiles")
+
+	echo "BASH: killing jack"
+	killall -9 jackd
+	sleep 2
+	echo "BASH: waiting for jack to start"
+	jackd -R -d alsa -d hw:1,0 &
+	sleep 4
+
+WARNING: me not yet in address book
+ERROR: Message 'addr' not understood.
+
+booting local server...
+SharedServer 2 audio buses: 128 control buses 4096
+SharedServer 2 buffers: 1024
+booting 10002
+connecting to existing local server - not yet implemented
+JackPosixProcessSync::LockedTimedWait error usec = 5000000 err = Connection timed out
+

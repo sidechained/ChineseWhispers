@@ -20,6 +20,7 @@ rm -r /home/debian/.local/share/SuperCollider/Extensions/Utopia;
 mkdir /home/debian/ChineseWhispers/;
 mkdir /home/debian/ChineseWhispers/code;
 mkdir /home/debian/ChineseWhispers/soundfiles;
+mkdir /home/debian/.local/share/SuperCollider/Extensions;
 mkdir /home/debian/.local/share/SuperCollider/Extensions/ChineseWhispers;
 mkdir /home/debian/.local/share/SuperCollider/Extensions/Utopia;
 "
